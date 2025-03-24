@@ -19,8 +19,7 @@
 #include <unordered_set>
 #include <mutex>
 
-#include "commondef.hpp"
-#include "sysdef.hpp"
+#include "liferesdestructor.hpp"
 
 namespace CXXL
 {
@@ -37,31 +36,8 @@ namespace CXXL
     {
         class _OwnerObserverBase;
 
-
-        // 要被銷毀的 LifeRes 的界面，作為要被銷毀處理器銷毀的作用對象
-        class IDestroyable
-        {
-        public:
-            virtual ~IDestroyable() = default;
-
-            // 當物件需要銷毀時將調用此方法
-            virtual void cxxlFASTCALL destroy() = 0;
-        };
-
-
-        // LifeRes<> 的銷毀處理器的使用界面
-        class ILifeResDestructor
-        {
-            virtual ~ILifeResDestructor() = default;
-
-            // 檢查 IDestroyable 物件是否需要被銷毀時將調用此方法
-            virtual void cxxlFASTCALL checkDestroy(IDestroyable *pDestroyable) = 0;
-            
-
-        };
-
         // LifeRes<> 的基礎類別
-        class _LifeRes
+        class _LifeRes: IDestroyable
         {
             mutable std::mutex m_LifeResMutex;
 
@@ -128,6 +104,12 @@ namespace CXXL
                 std::lock_guard<std::mutex> lock(m_LifeResMutex);
                 m_isDestroy = removeOwner();
             }
+
+            // 叫用 detachOwner() 之後呼叫銷毁器檢查是否需要銷毀
+            void cxxlFASTCALL checkDestroy() const
+            {
+                g_pLifeResDestructor->checkDestroy(const_cast<_LifeRes *>(this));
+            }
         };
 
         // LifeOwner 和 LifeObserver 的基礎類別
@@ -167,12 +149,16 @@ namespace CXXL
     template <typename LIFERES>
     class LifeObserver : public LifeResourcePrivate::_OwnerObserverBase
     {
-        void cxxlFASTCALL attachLifeRes(const std::shared_ptr<LIFTOBJECT> &lifeRes_ptr)
+        mutable std::mutex m_LifeObserverMutex;
+        void cxxlFASTCALL attachLifeRes(const std::shared_ptr<LIFERES> &lifeRes_ptr)
         {
             if (lifeRes_ptr)
             {
-                if (lifeRes_ptr->attach(this))
+                if (lifeRes_ptr->attachObserver(this))
+                {
+                    std::lock_guard<std::mutex> lock(m_LifeObserverMutex);
                     m_LifeRes_ptr = lifeRes_ptr;
+                }
             }
 
             m_LifeRes_ptr = nullptr;
@@ -184,8 +170,34 @@ namespace CXXL
           : _OwnerObserverBase(pHost) 
         {
             attachLifeRes(liferes_ptr);
-
         }
+
+        // Destructor
+        virtual ~LifeObserver() 
+        {
+            destroy();
+        }
+
+        // Setter
+        void cxxlFASTCALL setLifeRes(const shared_ptr<LIFERES> &liferes_ptr)
+        {
+            destroy();
+            attachLifeRes(liferes_ptr);
+        }
+
+        void cxxlFASTCALL destroy()
+        {
+            std::decltype(m_LifeRes_ptr) tmp_ptr;
+            {
+                std::lock_guard<std::mutex> lock(m_LifeObserverMutex);
+                tmp_ptr = m_LifeRes_ptr;
+                m_lifeRes_ptr = nullptr;
+            }
+
+            if (tmp_ptr)
+                tmp_ptr->detachObserver(this);
+        }
+
     };
 
     /*
@@ -195,15 +207,55 @@ namespace CXXL
     template <typename LIFERES>
     class LifeOwner : public LifeResourcePrivate::_OwnerObserverBase
     {
-        void cxxlFASTCALL attachLifeRes(const std::shared_ptr<LIFTOBJECT> &lifeRes_ptr)
+        mutable std::mutex m_LifeOwnerMutex;
+        void cxxlFASTCALL attachLifeRes(const std::shared_ptr<LIFERES> &lifeRes_ptr)
         {
             if (lifeRes_ptr)
             {
                 if (lifeRes_ptr->attachOwner(this))
+                {
+                    std::lock_guard<std::mutex> lock(m_LifeOwnerMutex);
                     m_LifeRes_ptr = lifeRes_ptr;
+                }
             }
 
             m_LifeRes_ptr = nullptr;
+        }
+
+    public:
+        // Constructor
+        LifeOwner(const shared_ptr<LIFERES> &liferes_ptr ,const _LifeRes *pHost) 
+          : _OwnerObserverBase(pHost) 
+        {
+            attachLifeRes(liferes_ptr);
+        }
+
+        // Destructor
+        virtual ~LifeOwner() 
+        {
+            destroy();
+        }
+
+        // Setter
+        void cxxlFASTCALL setLifeRes(const std::shared_ptr<LIFERES> &lifeRes_ptr)
+        {
+            destroy();
+            attachLifeRes(lifeRes_ptr);
+        }
+
+        void cxxlFASTCALL destroy()
+        {
+            std::decltype(m_LifeRes_ptr) tmp_ptr;
+            {
+                std::lock_guard<std::mutex> lock(m_LifeOwnerMutex);
+                tmp_ptr = m_LifeRes_ptr;
+                m_lifeRes_ptr = nullptr;
+            }
+            if(tmp_ptr)
+            {
+                tmp_ptr->detachOwner(this);
+                tmp_ptr->checkDestroy();
+            }
         }
 
     };
