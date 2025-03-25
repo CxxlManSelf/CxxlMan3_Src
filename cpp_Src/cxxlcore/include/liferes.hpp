@@ -18,11 +18,24 @@
 
 #include <unordered_set>
 #include <mutex>
+#include <functional>
+#include <cassert>
 
 #include "liferesdestructor.hpp"
 
 namespace CXXL
 {
+
+    // LifeRes 的 template 參數
+    enum class LifeResType
+    {
+        ALL,
+        ONE
+    };
+
+    // 會被特化為 LifeRes<ALL> 和 LifeRes<One>
+    template <LifeResType T>
+    class LifeRes;
 
     template <typename LIFERES>
     class LifeObserver;
@@ -30,14 +43,13 @@ namespace CXXL
     template <typename LIFERES>
     class LifeOwner;
 
-
     // 在此宣告一些 private 類別
     class LifeResourcePrivate
     {
         class _OwnerObserverBase;
 
         // LifeRes<> 的基礎類別
-        class _LifeRes: IDestroyable
+        class _LifeRes : IDestroyable
         {
             mutable std::mutex m_LifeResMutex;
 
@@ -55,11 +67,13 @@ namespace CXXL
             // 返回值為 true 表示此物件須要被標記為銷毀
             virtual bool cxxlFASTCALL removeOwner() const = 0;
 
+            inline virtual void cxxlFASTCALL destroy() override final; // class IDestroyable
+
             bool cxxlFASTCALL attach(const _OwnerObserverBase *pOwnerObserver) const
             {
-                if(m_isDestroy)
+                if (m_isDestroy)
                     return false;
-                
+
                 m_OwnerObserverSet.insert(pOwnerObserver);
                 return true;
             }
@@ -69,13 +83,18 @@ namespace CXXL
                 m_OwnerObserverSet.erase(pOwnerObserver);
             }
 
+        protected:
+#ifndef NDEBUG
+            // LifeRes<ALL> 和 LifeRes<ONE> 不能多重繼承
+            bool chkLifeAll = false, chkLifeOne = false;
+#endif
+
         public:
             // Constructor
             _LifeRes() {}
-            
+
             // Destructor
             virtual ~_LifeRes() {}
-
 
             bool cxxlFASTCALL attachObserver(const _OwnerObserverBase *pObserver) const
             {
@@ -92,9 +111,9 @@ namespace CXXL
             bool cxxlFASTCALL attachOwner(const _OwnerObserverBase *pOwner) const
             {
                 std::lock_guard<std::mutex> lock(m_LifeResMutex);
-                if(!attach(pOwner))
+                if (!attach(pOwner))
                     return false;
-                
+
                 addOwner();
                 return true;
             }
@@ -109,6 +128,67 @@ namespace CXXL
             void cxxlFASTCALL checkDestroy() const
             {
                 g_pLifeResDestructor->checkDestroy(const_cast<_LifeRes *>(this));
+            }
+        };
+
+        // 所有 LifeOwner 放棄持有才會被銷毀
+        // 強制 virtual 繼承 _LifeRes
+        class _LifeResAll : virtual _LifeRes
+        {
+            // LifeOwner 的持有數，歸零即須銷毀
+            mutable size_t m_OwnerCount = 0;
+
+            // 虛擬函數，用來通知延伸類別增加了一個 LifeOwner 持有者
+            virtual void cxxlFASTCALL addOwner() const override final
+            {
+                ++m_OwnerCount;
+            }
+
+            // 虛擬函數用來告知延伸者減少了一個 LifeOwner 持有者
+            // 返回值為 true 表示此物件須要被標記為銷毀
+            virtual bool cxxlFASTCALL removeOwner() const override final
+            {
+                return --m_OwnerCount == 0;
+            }
+
+        protected:
+            // Constructor
+            _LifeResAll()
+            {
+#ifndef NDEBUG
+                chkLifeAll = true;
+                assert(!chkLifeOne && "LifeRes<ALL> and LifeRes<ONE> are multiple inheritance!");
+#endif
+            }
+
+            // Destructor
+            virtual ~_LifeResAll() {}
+        };
+
+        // 只要一個 LifeOwner 放棄持有就會被銷毀
+        // 強制 virtual 繼承 _LifeRes
+        class _LifeResOne : virtual _LifeRes
+        {
+            // 虛擬函數，用來通知延伸類別增加了一個 LifeOwner 持有者
+            virtual void cxxlFASTCALL addOwner() const override final
+            {
+            }
+
+            // 虛擬函數用來告知延伸者減少了一個 LifeOwner 持有者
+            // 返回值為 true 表示此物件須要被標記為銷毀
+            virtual bool cxxlFASTCALL removeOwner() const override final
+            {
+                return true;
+            }
+
+        protected:
+            // Constructor
+            _LifeResOne()
+            {
+#ifndef NDEBUG
+                chkLifeOne = true;
+                assert(!chkLifeAll && "LifeRes<ALL> and LifeRes<ONE> are multiple inheritance!");
+#endif
             }
         };
 
@@ -131,6 +211,9 @@ namespace CXXL
         public:
             // Destructor
             virtual ~_OwnerObserverBase() {}
+
+            // 給 _LifeRes::destroy() 使用，pChkLifeRes 作為要檢查 _LifeRes
+            virtual void cxxlFASTCALL detachLifeRes(const _LifeRes *pChkLifeRes) const = 0;
         };
 
         template <typename LIFERES>
@@ -138,7 +221,42 @@ namespace CXXL
 
         template <typename LIFERES>
         friend class LifeOwner;
-    
+
+        template <LifeResType T>
+        friend class LifeRes;
+    };
+
+    void cxxlFASTCALL LifeResourcePrivate::_LifeRes::destroy()
+    {
+        m_LifeResMutex.lock();
+        m_isDestroy = true;
+        while (m_OwnerObserverSet.size() > 0)
+        {
+            auto it = m_OwnerObserverSet.begin();
+            // m_OwnerObserverSet.erase(it);
+            m_LifeResMutex.unlock();
+            // 解鎖之後，不用擔心 _OwnerObserverBase 會不存在
+            // 因為這是銷毀處理器的約定機制
+            (*it)->detachLifeRes(this);
+            m_LifeResMutex.lock();
+        }
+        m_LifeResMutex.unlock();
+    }
+
+    /*****************************************************************************/
+
+    // 所有 LifeOwner 放棄持有才會被銷毀
+    // 強制 virtual 繼承 _LifeResAll
+    template <>
+    class LifeRes<LifeResType::ALL> : virtual LifeResourcePrivate::_LifeResAll
+    {
+    };
+
+    // 只要一個 LifeOwner 放棄持有就會被銷毀
+    // 強制 virtual 繼承 _LifeResOne
+    template <>
+    class LifeRes<LifeResType::ONE> : virtual LifeResourcePrivate::_LifeResOne
+    {
     };
 
     /*****************************************************************************/
@@ -147,17 +265,26 @@ namespace CXXL
     ** LifeRes<> 要被結束會獲得通知
     */
     template <typename LIFERES>
-    class LifeObserver : public LifeResourcePrivate::_OwnerObserverBase
+    class LifeObserver : LifeResourcePrivate::_OwnerObserverBase
     {
-        mutable std::mutex m_LifeObserverMutex;
+        // 使用端要做好 _OwnerObserverBase 的同步控制，以及放棄持有 _LifeRes。
+        // pChkLifeRes 作為要檢查 _LifeRes，判斷持有的 _LifeRes 是否和要被放棄的 pChkLifeRes 相同
+        std::function<void(const LIFERES *pChkLifeRes)> m_detachLifeResFunc;
+
+        virtual void cxxlFASTCALL detachLifeRes(const _LifeRes *pChkLifeRes) const override final
+        {
+            LIFERES *pLifeRes = static_cast<LIFERES *>(pChkLifeRes);
+            m_detachLifeResFunc(pLifeRes);
+        }
+
         void cxxlFASTCALL attachLifeRes(const std::shared_ptr<LIFERES> &lifeRes_ptr)
         {
             if (lifeRes_ptr)
             {
                 if (lifeRes_ptr->attachObserver(this))
                 {
-                    std::lock_guard<std::mutex> lock(m_LifeObserverMutex);
                     m_LifeRes_ptr = lifeRes_ptr;
+                    return;
                 }
             }
 
@@ -166,14 +293,26 @@ namespace CXXL
 
     public:
         // Constructor
-        LifeObserver(const shared_ptr<LIFERES> &liferes_ptr ,const _LifeRes *pHost) 
-          : _OwnerObserverBase(pHost) 
+        LifeObserver(const shared_ptr<LIFERES> &liferes_ptr,
+                     const _LifeRes *pHost,
+                     const std::function<void(const LIFERES *pChkLifeRes)> &detachLifeResFunc)
+            : _OwnerObserverBase(pHost),
+              m_detachLifeResFunc(detachLifeResFunc)
         {
             attachLifeRes(liferes_ptr);
         }
 
+        // Constructor
+        template <typename HOST>
+        LifeObserver(const shared_ptr<LIFERES> &liferes_ptr,
+                     HOST *pHost,
+                     const std::function<void(const LIFERES *pChkLifeRes)> &detachLifeResFunc)
+        {
+            LifeObserver(liferes_ptr, static_cast<const _LifeRes *>(pHost), detachLifeResFunc);
+        }
+
         // Destructor
-        virtual ~LifeObserver() 
+        virtual ~LifeObserver()
         {
             destroy();
         }
@@ -185,19 +324,12 @@ namespace CXXL
             attachLifeRes(liferes_ptr);
         }
 
+        // 銷毀
         void cxxlFASTCALL destroy()
         {
-            std::decltype(m_LifeRes_ptr) tmp_ptr;
-            {
-                std::lock_guard<std::mutex> lock(m_LifeObserverMutex);
-                tmp_ptr = m_LifeRes_ptr;
-                m_lifeRes_ptr = nullptr;
-            }
-
-            if (tmp_ptr)
-                tmp_ptr->detachObserver(this);
+            m_LifeRes_ptr->detachObserver(this);
+            m_lifeRes_ptr.reset();
         }
-
     };
 
     /*
@@ -205,17 +337,26 @@ namespace CXXL
     ** LifeRes<> 要被結束會獲得通知
     */
     template <typename LIFERES>
-    class LifeOwner : public LifeResourcePrivate::_OwnerObserverBase
+    class LifeOwner : LifeResourcePrivate::_OwnerObserverBase
     {
-        mutable std::mutex m_LifeOwnerMutex;
+        // 使用端要做好 _OwnerObserverBase 的同步控制，以及放棄持有 _LifeRes。
+        // pChkLifeRes 作為要檢查 _LifeRes，判斷持有的 _LifeRes 是否和要被放棄的 pChkLifeRes 相同
+        std::function<void(const LIFERES *pChkLifeRes)> m_detachLifeResFunc;
+
+        virtual void cxxlFASTCALL detachLifeRes(const _LifeRes *pChkLifeRes) const override final
+        {
+            LIFERES *pLifeRes = static_cast<LIFERES *>(pChkLifeRes);
+            m_detachLifeResFunc(pLifeRes);
+        }
+
         void cxxlFASTCALL attachLifeRes(const std::shared_ptr<LIFERES> &lifeRes_ptr)
         {
             if (lifeRes_ptr)
             {
                 if (lifeRes_ptr->attachOwner(this))
                 {
-                    std::lock_guard<std::mutex> lock(m_LifeOwnerMutex);
                     m_LifeRes_ptr = lifeRes_ptr;
+                    return;
                 }
             }
 
@@ -224,14 +365,26 @@ namespace CXXL
 
     public:
         // Constructor
-        LifeOwner(const shared_ptr<LIFERES> &liferes_ptr ,const _LifeRes *pHost) 
-          : _OwnerObserverBase(pHost) 
+        LifeOwner(const shared_ptr<LIFERES> &liferes_ptr, 
+                  const _LifeRes *pHost,
+                  const std::function<void(const LIFERES *pChkLifeRes)> &detachLifeResFunc)
+            : _OwnerObserverBase(pHost),
+              m_detachLifeResFunc(detachLifeResFunc)
         {
             attachLifeRes(liferes_ptr);
         }
 
+        // Constructor
+        template <typename HOST> 
+        LifeOwner(const shared_ptr<LIFERES> &liferes_ptr, 
+                  HOST *pHost,
+                  const std::function<void(const LIFERES *pChkLifeRes)> &detachLifeResFunc)
+        {
+            LifeOwner(liferes_ptr, static_cast<const _LifeRes *>(pHost), detachLifeResFunc);
+        }
+
         // Destructor
-        virtual ~LifeOwner() 
+        virtual ~LifeOwner()
         {
             destroy();
         }
@@ -243,21 +396,20 @@ namespace CXXL
             attachLifeRes(lifeRes_ptr);
         }
 
+        // 銷毀
         void cxxlFASTCALL destroy()
         {
-            std::decltype(m_LifeRes_ptr) tmp_ptr;
-            {
-                std::lock_guard<std::mutex> lock(m_LifeOwnerMutex);
-                tmp_ptr = m_LifeRes_ptr;
-                m_lifeRes_ptr = nullptr;
-            }
-            if(tmp_ptr)
+            // tmp_ptr 確保 checkDestroy() 執行後 _LifeRes 還活著
+            std::decltype(m_LifeRes_ptr) tmp_ptr(m_LifeRes_ptr);
+
+            m_lifeRes_ptr.reset();
+
+            if (tmp_ptr)
             {
                 tmp_ptr->detachOwner(this);
                 tmp_ptr->checkDestroy();
             }
         }
-
     };
 
 }
