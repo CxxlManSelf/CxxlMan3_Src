@@ -1,5 +1,5 @@
 /************************************************************************************************
- * semaphore.hpp v1.0.0
+ * semaphore.hpp v1.0.2
  *
  * 提供一個 semaphore 功能，這個 semaphore 可以設定遇到進入 block 狀態
  * 前，會先呼叫由使用端提供的回叫函數
@@ -23,8 +23,9 @@ namespace CXXL
 
     class cxxlSemaphore final
     {
-        size_t m_maxThread = 0; // 最多可多少 thread 允許通行，0 表示不限
+        const size_t m_maxThread = 0; // 最多可多少 thread 允許通行，0 表示不限
         size_t m_numThread = 0; // 有多少 thread 允許通行，若設為 0，表示 block
+        bool m_isBlock = true; // 是否要有 block 功能
         std::mutex m_semaphore_mutex;
         std::condition_variable m_condition;
 
@@ -37,7 +38,12 @@ namespace CXXL
         {
         }
 
-        cxxlSemaphore() = default;
+        // Constructor
+        cxxlSemaphore()
+        {
+            cxxlSemaphore(1,0);
+        }
+
         ~cxxlSemaphore() = default;
 
         // 等待取得執行權
@@ -56,11 +62,11 @@ namespace CXXL
             std::unique_lock<std::mutex> lock(m_semaphore_mutex);
             m_condition.wait(lock,
                              [&]() -> bool
-                             { return (m_numThread > 0) ? true : (blockEvent(), false); });
+                             { return (!m_isBlock || m_numThread > 0) ? true : (blockEvent(), false); });
             --m_numThread;
         }
 
-        // 釋放一個執行緒
+        // 釋放一個被 block 的執行緒
         void cxxlFASTCALL release()
         {
             std::lock_guard<std::mutex> lock(m_semaphore_mutex);
@@ -69,6 +75,13 @@ namespace CXXL
                 ++m_numThread;
                 m_condition.notify_one();
             }
+        }
+
+        // 設定 block 狀態
+        void cxxlFASTCALL setBlock(bool isBlock)
+        {
+            std::lock_guard<std::mutex> lock(m_semaphore_mutex);
+            m_isBlock = isBlock;
         }
 
         // 讓 m_numThread 歸 0，即設為 block 狀態
