@@ -51,6 +51,31 @@ namespace CXXL
         // LifeRes<> 的基礎類別
         class _LifeRes : IDestroyable
         {
+            union
+            {
+                struct
+                {
+                    mutable bool cFlag : 1; // 已放入待刪佇列為 true，否則為 false
+                    mutable bool fFlag : 1; // 銷毀處理器已搜尋過為 true，否則為 false
+                    mutable bool rFlag : 1; // 本身是 rootLifeRes,或未放入過 _OwnerObserverBase 為 false，否則為 true
+                    mutable bool ldFlag : 1; // 銷毀處理器已判定須銷毀為 true
+                   // bool pFlag : 1; // 放入待刪佇列的後端為 false，否則為 true
+                };
+                uint8_t allFlags = 0; // 用於快速清為 0
+            };
+
+            // 巡查是不是已經沒有未銷毀的 Host 存在
+            inline bool cxxlFASTCALL checkNoHost() const;
+
+            inline virtual bool cxxlFASTCALL LD_shouldDestroy() const override final; // class IDestroyable
+
+            inline virtual void cxxlFASTCALL LD_destroy() override final; // class IDestroyable
+
+            inline virtual void cxxlFASTCALL LD_clearFlag() override final // class IDestroyable
+            {
+                fFlag = false;
+            }
+
             mutable std::mutex m_LifeResMutex;
 
             // 用來標記 _LifeRes 物件是不是要銷毁了，被標記的物件不能再被 _OwnerObserverBase 持有
@@ -67,13 +92,13 @@ namespace CXXL
             // 返回值為 true 表示此物件須要被標記為銷毀
             virtual bool cxxlFASTCALL removeOwner() const = 0;
 
-            inline virtual void cxxlFASTCALL destroy() override final; // class IDestroyable
 
             bool cxxlFASTCALL attach(const _OwnerObserverBase *pOwnerObserver) const
             {
                 if (m_isDestroy)
                     return false;
 
+                rFlag = true;
                 m_OwnerObserverSet.insert(pOwnerObserver);
                 return true;
             }
@@ -127,6 +152,18 @@ namespace CXXL
             // 叫用 detachOwner() 之後呼叫銷毁器檢查是否需要銷毀
             void cxxlFASTCALL checkDestroy() const
             {
+                {
+                    std::lock_guard<std::mutex> lock(m_LifeResMutex);
+
+                    // 已放入待刪佇列的物件不用再次放入
+                    if(cFlag) return;
+
+                    // 前次檢查銷毀處理器已判定須銷毀
+                    if(ldFlag) return;
+
+                    cFlag = true; // 標記已放入待刪佇列
+                }
+
                 g_pLifeResDestructor->checkDestroy(const_cast<_LifeRes *>(this));
             }
         };
@@ -214,6 +251,8 @@ namespace CXXL
 
             // 給 _LifeRes::destroy() 使用，pChkLifeRes 作為要檢查 _LifeRes
             virtual void cxxlFASTCALL detachLifeRes(const _LifeRes *pChkLifeRes) const = 0;
+
+            friend class _LifeRes;
         };
 
         template <typename LIFERES>
@@ -226,7 +265,59 @@ namespace CXXL
         friend class LifeRes;
     };
 
-    void cxxlFASTCALL LifeResourcePrivate::_LifeRes::destroy()
+    bool cxxlFASTCALL LifeResourcePrivate::_LifeRes::checkNoHost() const
+    {
+        // 已找過
+        if (fFlag) return true;
+
+        fFlag = true;   // 設為已找過的狀態
+        g_pLifeResDestructor->clearFlag(this);
+
+        std::lock_guard<std::mutex> lock(m_LifeResMutex);
+
+        if (rFlag == false)  // 本身是 rootLifeRes,或未放入過 _OwnerObserverBase 為 false
+            return false;
+
+        if (cFlag || m_OwnerObserverSet.size() == 0)
+            return false; // 回報我也要處理待刪確認
+        
+        bool fNoRootLifeRes = true; // 有找到 rootLifeRes 或還有要放棄持有的處理回覆 false
+        for(const auto &it : m_OwnerObserverSet)
+        {
+            auto host = it->m_pHost;
+            fNoRootLifeRes = host->checkNoHost();
+            if(!fNoRootLifeRes) break;
+        }
+        return fNoRootLifeRes;
+    }
+
+    bool cxxlFASTCALL LifeResourcePrivate::_LifeRes::LD_shouldDestroy() const
+    {
+        std::lock_guard<std::mutex> lock(m_LifeResMutex);
+
+
+        if(m_isDestroy) return ldFlag = true; // 已標識須銷毀
+
+        // 無持有者了
+        if(m_OwnerObserverSet.size() == 0) return ldFlag = true;
+
+        fFlag = true;   // 設為已找過的狀態
+
+        bool fNoRootLifeRes = true; // 檢查是不是已經沒有未銷毀的 Host 存在
+        for(const auto &it : m_OwnerObserverSet)
+        {
+            auto host = it->m_pHost;
+            fNoRootLifeRes = host->checkNoHost();
+            if(!fNoRootLifeRes) break;
+        }
+
+        cFlag = 0;  // 可再被放入待刪佇列
+        fFlag = false;
+
+        return ldFlag = fNoRootLifeRes; 
+    }
+
+    void cxxlFASTCALL LifeResourcePrivate::_LifeRes::LD_destroy()
     {
         m_LifeResMutex.lock();
         m_isDestroy = true;

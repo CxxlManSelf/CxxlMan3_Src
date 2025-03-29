@@ -3,7 +3,7 @@ project(cxxlcore VERSION 0.1.0 LANGUAGES CXX)
 # 變譯程式庫時需要加入這個巨集，以作為和使用端的編譯做區別
 add_definitions(-D_CXXLCORE_EXPORT)
 
-set(SRC_LIST "src/cxxlobject.cpp" "src/cxxlstrpbrk.cpp" "src/u8_string.cpp")
+set(SRC_LIST "src/life_res_destructor.cpp" "src/cxxlstrpbrk.cpp" "src/u8_string.cpp")
 set(LIBSRC_LIST cxxlcommon)
 
 if(NOT WIN32)

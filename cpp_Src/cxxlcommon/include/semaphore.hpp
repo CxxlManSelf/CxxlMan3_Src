@@ -1,5 +1,5 @@
 /************************************************************************************************
- * semaphore.hpp v1.0.3
+ * semaphore.hpp v1.0.4
  *
  * 提供一個 semaphore 功能，這個 semaphore 可以設定遇到進入 block 狀態
  * 前，會先呼叫由使用端提供的回叫函數
@@ -32,17 +32,10 @@ namespace CXXL
         // Constructor
         // maxThread = 最多可多少 thread 允許通行，0 表示不限
         // numThread = 設定一開始有多少 thread 允許通行，若設為 0，表示一開始會先被 block
-        cxxlSemaphore(size_t maxThread, size_t numThread)
+        // 內定只有一個執行緒可以通行並設為 block
+        cxxlSemaphore(size_t maxThread = 1, size_t numThread = 0)
             : m_maxThread(maxThread), m_numThread(numThread)
         {
-        }
-
-        // Constructor
-        // 內定只能有一個執行緒可以通行
-        // 而且一開始設為 block
-        cxxlSemaphore()
-        {
-            cxxlSemaphore(1,0);
         }
 
         ~cxxlSemaphore() = default;
