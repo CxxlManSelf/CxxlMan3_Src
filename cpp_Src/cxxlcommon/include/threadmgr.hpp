@@ -72,7 +72,7 @@ namespace CXXL
         }
 
         // std::thread 要使用的函數
-        void cxxlFASTCALL thredProc()
+        void cxxlFASTCALL threadProc()
         {
             std::function<void(void)> Func;
             while (true)
@@ -127,7 +127,7 @@ namespace CXXL
         auto operator()(F &&f, Args &&...args) -> std::future<decltype(f(args...))>
         {
             if(m_isStop) // 如果是要結束所有執行緒
-                return false;
+                return std::future<decltype(f(args...))>();               
 
             using return_type = decltype(f(args...));
 
@@ -146,9 +146,9 @@ namespace CXXL
 
                 if (m_numThreads < m_maxThreads) // 未達執行緒的上限
                 {
-                    std::thread([this]
-                                { this->threadProc(); })
-                        .detach;
+                    std::thread ([this]
+                                { this->threadProc(); }).detach();
+                    
                     ++m_numThreads;
                 }
             }
@@ -197,7 +197,7 @@ namespace CXXL
         }
 
         // std::thread 要使用的函數
-        void cxxlFASTCALL thredProc()
+        void cxxlFASTCALL threadProc()
         {
             std::function<void(void)> Func;
             while (m_isStop == false)
@@ -223,8 +223,7 @@ namespace CXXL
             for (size_t i = 0; i < maxThreads; ++i)
             {
                 std::thread([this]
-                            { this->thredProc(); })
-                    .detach();
+                            { this->threadProc(); }).detach();
             }
         }
 
@@ -258,7 +257,7 @@ namespace CXXL
         auto operator()(F &&f, Args &&...args) -> std::future<decltype(f(args...))>
         {
             if(m_isStop) // 如果是要結束所有執行緒
-                return false;
+                return std::future<decltype(f(args...))>();
 
             using return_type = decltype(f(args...));
 
