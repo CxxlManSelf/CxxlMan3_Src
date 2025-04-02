@@ -1,5 +1,5 @@
 /****************************************************************************************
- * threadmgr.hpp v0.1.0
+ * threadmgr.hpp v1.0.1
  *
  *  提供兩個執行緒的管理功能
  *
@@ -40,14 +40,12 @@ namespace CXXL
         std::mutex m_task_mutex;
         std::queue<std::function<void()>> m_tasks; // 待處理的任務
 
-        std::atomic_bool m_isStop = false; // 表示所有執行緒都結束
+        bool m_isStop = false; // 表示所有執行緒都結束
 
         size_t m_maxThreads;     // 最大執行緒數量
         size_t m_numThreads = 0; // 目前執行緒數量
 
-        // 雙重驗證
-        cxxlSemaphore m_isOver;    // 等待所有 thread 都結束
-        bool m_isOverFlag = false; // 所有 thread 都結束了
+        cxxlSemaphore m_isOver{1,1};    // 等待所有 thread 都結束
 
         // 由 thredProc() 呼叫
         // 取出一個任務，若回覆 false 則 thredProc 會結束
@@ -61,7 +59,6 @@ namespace CXXL
 
                 if (m_numThreads == 0) // 所有執行緒都結束
                 {
-                    m_isOverFlag = true;
                     m_isOver.release();
                 }
 
@@ -84,18 +81,6 @@ namespace CXXL
             }
         }
 
-        // 等待完成所有任務
-        void cxxlFASTCALL waitOver()
-        {
-            while (true)
-            {
-                m_isOver.wait();
-                std::lock_guard<std::mutex> lock(m_task_mutex);
-                if (m_isOverFlag)
-                    break;
-            }
-        }
-
     public:
         // Constructor
         // maxThreads = 最大執行緒數量
@@ -107,8 +92,11 @@ namespace CXXL
         // Destructor
         virtual ~ThreadLimiter()
         {
-            m_isStop = true;
-            waitOver();
+            {
+                std::lock_guard<std::mutex> lock(m_task_mutex);
+                m_isStop = true;
+            }
+            m_isOver.wait();
         }
 
         // 清除任務佇列
@@ -128,9 +116,6 @@ namespace CXXL
         template <class F, class... Args>
         auto operator()(F &&f, Args &&...args) -> std::optional<std::future<std::invoke_result_t<F, Args...>>>
         {
-            if(m_isStop) // 如果是要結束所有執行緒
-                return std::nullopt;
-
             using return_type = std::invoke_result_t<F, Args...>;
 
             auto task = std::make_shared<std::packaged_task<return_type()>>(
@@ -140,8 +125,10 @@ namespace CXXL
 
             {
                 std::lock_guard<std::mutex> lock(m_task_mutex);
+                if(m_isStop) // 如果是要結束所有執行緒
+                    return std::nullopt;
+
                 m_isOver.zero();
-                m_isOverFlag = false;
 
                 m_tasks.emplace([task]()
                                 { (*task)(); });
@@ -154,7 +141,8 @@ namespace CXXL
                     ++m_numThreads;
                 }
             }
-            return res;
+
+            return std::move(res); // 返回結果
         }
     };
 
@@ -165,15 +153,13 @@ namespace CXXL
         std::mutex m_task_mutex;
         std::queue<std::function<void()>> m_tasks; // 待處理的任務
 
-        std::atomic_bool m_isStop = false; // 表示所有執行緒都結束
-        cxxlSemaphore m_gate;              // block 執行緒
+        bool m_isStop = false; // 表示所有執行緒都結束
+        cxxlSemaphore m_gate;  // block 執行緒
 
         size_t m_maxThreads;     // 最大執行緒數量
         size_t m_numThreads = 0; // 目前多少執行緒在執行
 
-        // 雙重驗證
-        cxxlSemaphore m_isOver;    // 等待所有的任務都結束
-        bool m_isOverFlag = false; // 所有的任務都結束了
+        cxxlSemaphore m_isOver{1,1};    // 等待所有的任務都結束
 
         // 由 thredProc() 呼叫
         // 取出一個任務，若回覆 false 則 thredProc 會 block
@@ -187,7 +173,6 @@ namespace CXXL
 
                 if (m_numThreads == 0) // 所有任務都結束
                 {
-                    m_isOverFlag = true;
                     m_isOver.release();
                 }
 
@@ -215,17 +200,6 @@ namespace CXXL
             }
         }
 
-        // 等待完成所有任務
-        void cxxlFASTCALL waitOver()
-        {
-            while (true)
-            {
-                m_isOver.wait();
-                std::lock_guard<std::mutex> lock(m_task_mutex);
-                if (m_isOverFlag)
-                    break;
-            }
-        }
 
     public:
         // Constructor
@@ -244,10 +218,13 @@ namespace CXXL
         // Destructor
         ~ThreadPool()
         {
-            m_isStop = true;
-            for (size_t i = 0; i < m_maxThreads; ++i)
-                m_gate.release();
-            waitOver();
+            {
+                std::lock_guard<std::mutex> lock(m_task_mutex);
+                m_isStop = true;
+                for (size_t i = 0; i < m_maxThreads; ++i)
+                    m_gate.release();
+            }
+            m_isOver.wait();
         }
 
 
@@ -260,9 +237,6 @@ namespace CXXL
         template <class F, class... Args>
         auto operator()(F &&f, Args &&...args) -> std::optional<std::future<std::invoke_result_t<F, Args...>>>
         {
-            if(m_isStop) // 如果是要結束所有執行緒
-                return std::nullopt;
-
             using return_type = std::invoke_result_t<F, Args...>;
 
             auto task = std::make_shared<std::packaged_task<return_type()>>(
@@ -272,14 +246,16 @@ namespace CXXL
 
             {
                 std::lock_guard<std::mutex> lock(m_task_mutex);
+                if(m_isStop) // 如果是要結束所有執行緒
+                    return std::nullopt;
+
                 m_isOver.zero();
-                m_isOverFlag = false;
 
                 m_tasks.emplace([task]()
                                 { (*task)(); });
             }
             
-            return res;
+            return std::move(res); // 返回結果
         }
     };
 
