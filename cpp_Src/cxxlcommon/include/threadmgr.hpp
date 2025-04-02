@@ -25,6 +25,7 @@
 #include <future>
 #include <functional>
 #include <queue>
+#include <optional>
 
 #include "commondef.hpp"
 #include "sysdef.hpp"
@@ -83,6 +84,18 @@ namespace CXXL
             }
         }
 
+        // 等待完成所有任務
+        void cxxlFASTCALL waitOver()
+        {
+            while (true)
+            {
+                m_isOver.wait();
+                std::lock_guard<std::mutex> lock(m_task_mutex);
+                if (m_isOverFlag)
+                    break;
+            }
+        }
+
     public:
         // Constructor
         // maxThreads = 最大執行緒數量
@@ -106,30 +119,19 @@ namespace CXXL
                 m_tasks.pop();
         }
 
-        // 等待完成所有任務
-        void cxxlFASTCALL waitOver()
-        {
-            while (true)
-            {
-                m_isOver.wait();
-                std::lock_guard<std::mutex> lock(m_task_mutex);
-                if (m_isOverFlag)
-                    break;
-            }
-        }
-
         // 放入要執行的任務
         // f = 要執行的函數
         // args = 要傳入 f 的參數
         // return_type = f 的回傳型態
         // res = f 的回傳
+        // 但如果已經不能使用了，則回傳 std::nullopt
         template <class F, class... Args>
-        auto operator()(F &&f, Args &&...args) -> std::future<decltype(f(args...))>
+        auto operator()(F &&f, Args &&...args) -> std::optional<std::future<std::invoke_result_t<F, Args...>>>
         {
             if(m_isStop) // 如果是要結束所有執行緒
-                return std::future<decltype(f(args...))>();               
+                return std::nullopt;
 
-            using return_type = decltype(f(args...));
+            using return_type = std::invoke_result_t<F, Args...>;
 
             auto task = std::make_shared<std::packaged_task<return_type()>>(
                 std::bind(std::forward<F>(f), std::forward<Args>(args)...));
@@ -213,6 +215,18 @@ namespace CXXL
             }
         }
 
+        // 等待完成所有任務
+        void cxxlFASTCALL waitOver()
+        {
+            while (true)
+            {
+                m_isOver.wait();
+                std::lock_guard<std::mutex> lock(m_task_mutex);
+                if (m_isOverFlag)
+                    break;
+            }
+        }
+
     public:
         // Constructor
         // maxThreads = 最大執行緒數量
@@ -236,30 +250,20 @@ namespace CXXL
             waitOver();
         }
 
-        // 等待完成所有任務
-        void cxxlFASTCALL waitOver()
-        {
-            while (true)
-            {
-                m_isOver.wait();
-                std::lock_guard<std::mutex> lock(m_task_mutex);
-                if (m_isOverFlag)
-                    break;
-            }
-        }
 
         // 放入要執行的任務
         // f = 要執行的函數
         // args = 要傳入 f 的參數
         // return_type = f 的回傳型態
         // res = f 的回傳
+        // 但如果已經不能使用了，則回傳 std::nullopt
         template <class F, class... Args>
-        auto operator()(F &&f, Args &&...args) -> std::future<decltype(f(args...))>
+        auto operator()(F &&f, Args &&...args) -> std::optional<std::future<std::invoke_result_t<F, Args...>>>
         {
             if(m_isStop) // 如果是要結束所有執行緒
-                return std::future<decltype(f(args...))>();
+                return std::nullopt;
 
-            using return_type = decltype(f(args...));
+            using return_type = std::invoke_result_t<F, Args...>;
 
             auto task = std::make_shared<std::packaged_task<return_type()>>(
                 std::bind(std::forward<F>(f), std::forward<Args>(args)...));

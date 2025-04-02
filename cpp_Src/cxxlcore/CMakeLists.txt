@@ -10,12 +10,12 @@ if(NOT WIN32)
     set(LIBSRC_LIST ${LIBSRC_LIST} pthread)
 endif()
 
-# 變譯程式庫時需要加入這個巨集，以作為和使用端的編譯做區別
+# 編譯程式庫時需要加入這個巨集，以作為和使用端的編譯做區別
 add_definitions(-D_CXXLCORE_DLLEXPORT)
 
 include_directories("../cxxlcommon/include" "include")
 add_library(${TARGET_NAME} SHARED ${SRC_LIST})
-target_link_libraries(${TARGET_NAME} ${LIBSRC_LIST})
+#target_link_libraries(${TARGET_NAME} ${LIBSRC_LIST})
 
 INSTALL(TARGETS ${TARGET_NAME}
         LIBRARY DESTINATION lib

@@ -11,7 +11,7 @@
 #define __CXXLCOMMON_COMMONDEF_HPP_CxxlMan3
 
 // namespace
-#define cxxlNAMESPACE cxxl3
+#define CXXL CxxlMan3
 
 // c++20 提供
 #if defined(__cpp_lib_char8_t)
