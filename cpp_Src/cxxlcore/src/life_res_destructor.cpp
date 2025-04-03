@@ -97,7 +97,7 @@ namespace CXXL
 
         }
 
-        void checkDestroy(const IDestroyable *pDestroyable)
+        void cxxlFASTCALL checkDestroy(const IDestroyable *pDestroyable)
             override // class ILifeResDestructor
         {
             g_Destructor.add(const_cast<IDestroyable *>(pDestroyable));

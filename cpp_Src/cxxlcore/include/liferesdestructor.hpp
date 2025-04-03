@@ -18,9 +18,9 @@
 #include "sysdef.hpp"
 
 #if defined(_CXXLCORE_DLLEXPORT)
-#define CXXLLIFERES_DLLEXPORT CXXL_DLLEXPORT
+#define CXXLCORE_DLLEXPORT CXXL_DLLEXPORT
 #else
-#define CXXLLIFERES_DLLEXPORT CXXL_DLLIMPORT
+#define CXXLCORE_DLLEXPORT CXXL_DLLIMPORT
 #endif
 
 
@@ -62,7 +62,7 @@ namespace CXXL
     };
 
     // 定義在外部的 ILifeResDestructor 的實例指標
-    extern ILifeResDestructor *g_pLifeResDestructor;
+    extern CXXLCORE_DLLEXPORT ILifeResDestructor *g_pLifeResDestructor;
 
 
 }
