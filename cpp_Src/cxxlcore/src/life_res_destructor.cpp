@@ -18,7 +18,7 @@ namespace CXXL
         std::mutex m_mutex;
 
         // 待銷毀清單
-        std::list<IDestroyable *> m_list;
+        std::list<std::shared_ptr<IDestroyable> > m_list;
 
         // threadProc 的等待通知管制，待銷毀清單沒有放入的時候
         // 會等待，待銷毀清單有放入的時候會得到通知才運行
@@ -35,7 +35,7 @@ namespace CXXL
             while (true)
             {
                 // 用於取得待銷毀物件
-                IDestroyable *pDestroyable;
+                std::shared_ptr<IDestroyable> destroyable_ptr;
 
                 m_gate.wait();
 
@@ -46,15 +46,15 @@ namespace CXXL
 
                         if (!m_list.empty())
                         {
-                            pDestroyable = m_list.front();
+                            destroyable_ptr = m_list.front();
                             m_list.pop_front();
                         }
                         else
                             break;
                     }
 
-                    if (pDestroyable->LD_shouldDestroy())
-                        pDestroyable->LD_destroy();
+                    if (destroyable_ptr->LD_shouldDestroy())
+                        destroyable_ptr->LD_destroy();
 
                     for(auto it:m_LifeResSet_fFlag)
                         it->LD_clearFlag();
@@ -74,10 +74,10 @@ namespace CXXL
 
 
         // 放入待銷毀物件
-        void cxxlFASTCALL add(IDestroyable *pDestroyable)
+        void cxxlFASTCALL add(const std::shared_ptr<IDestroyable> &destroyable_ptr)
         {
             std::lock_guard<std::mutex> lock(m_mutex);
-            m_list.push_front(pDestroyable);
+            m_list.push_front(destroyable_ptr);
             m_gate.release();
         }
 
@@ -97,10 +97,10 @@ namespace CXXL
             g_Destructor.reset_fFlag(pDestroyable);
         }
 
-        void cxxlFASTCALL checkDestroy(const IDestroyable *pDestroyable)
+        void cxxlFASTCALL checkDestroy(const std::shared_ptr<IDestroyable> &destroyable_ptr)
             override // class ILifeResDestructor
         {
-            g_Destructor.add(const_cast<IDestroyable *>(pDestroyable));
+            g_Destructor.add(destroyable_ptr);
         }
 
     public:

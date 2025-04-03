@@ -1,5 +1,5 @@
 /****************************************************************************************
- * threadmgr.hpp v1.0.2
+ * threadmgr.hpp v1.0.3
  *
  *  提供兩個執行緒的管理功能
  *
@@ -114,7 +114,8 @@ namespace CXXL
             while(true)
             {
                 m_isOver.wait(); 
-                if (m_tasks.empty() && m_numThreads == 0)
+                // if (m_tasks.empty() && m_numThreads == 0) 應該不須要這樣的判斷
+                if(m_numThreads == 0)
                 {
                     m_isOver.release();
                     break;

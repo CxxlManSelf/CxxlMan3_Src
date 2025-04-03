@@ -1,4 +1,5 @@
-string(TIMESTAMP BUILD_TIMESTAMP "%Y%m%d%H%M%S")
+#string(TIMESTAMP BUILD_TIMESTAMP "%Y%m%d%H%M%S")
+string(TIMESTAMP BUILD_TIMESTAMP "%y%j%H%M")
 set(PROJECT_VERSION_PATCH ${BUILD_TIMESTAMP})
 project(cxxlcore VERSION 0.1.${PROJECT_VERSION_PATCH} DESCRIPTION "CxxlMan3 最底層核心" LANGUAGES CXX)
 set(TARGET_NAME ${PROJECT_NAME})
@@ -9,7 +10,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/version.rc.in
 
 set(SRC_LIST "src/life_res_destructor.cpp")
 
-set(LIBSRC_LIST cxxlcommon)
+#set(LIBSRC_LIST cxxlcommon)
 if(UNIX)
     set(LIBSRC_LIST ${LIBSRC_LIST} pthread)
 endif()
@@ -18,11 +19,12 @@ endif()
 add_definitions(-D_CXXLCORE_DLLEXPORT)
 
 include_directories("../cxxlcommon/include" "include")
-add_library(
-    ${TARGET_NAME} SHARED ${SRC_LIST}
-)
+add_library(${TARGET_NAME} SHARED ${SRC_LIST})
 target_sources(${TARGET_NAME} PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/version.rc)
-#target_link_libraries(${TARGET_NAME} ${LIBSRC_LIST})
+if (NOT LIBSRC_LIST STREQUAL "")
+    target_link_libraries(${TARGET_NAME} ${LIBSRC_LIST})
+endif()
+
 
 INSTALL(TARGETS ${TARGET_NAME}
         RUNTIME DESTINATION bin
