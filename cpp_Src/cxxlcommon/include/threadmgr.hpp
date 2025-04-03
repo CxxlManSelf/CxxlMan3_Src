@@ -107,15 +107,21 @@ namespace CXXL
                 m_tasks.pop();
         }
 
-/* 沒法和上司同步 
 
         // 等待所有任務結束
         void cxxlFASTCALL waitAllTask() 
         { 
-            m_isOver.wait(); 
-            m_isOver.release();
+            while(true)
+            {
+                m_isOver.wait(); 
+                if (m_tasks.empty() && m_numThreads == 0)
+                {
+                    m_isOver.release();
+                    break;
+                }
+            }           
         }
-*/
+
         // 放入要執行的任務
         // f = 要執行的函數
         // args = 要傳入 f 的參數
@@ -237,15 +243,21 @@ namespace CXXL
             m_isOver.wait();
         }
 
-/* 沒法和上司同步 
 
         // 等待所有任務結束
         void cxxlFASTCALL waitAllTask() 
         { 
-            m_isOver.wait(); 
-            m_isOver.release();
+            while(true)
+            {
+                m_isOver.wait(); 
+                std::lock_guard<std::mutex> lock(m_task_mutex);
+                if (m_tasks.empty() && m_numThreads == 0)
+                {
+                    m_isOver.release();
+                    break;
+                }
+            }           
         }
-*/
 
         // 放入要執行的任務
         // f = 要執行的函數
