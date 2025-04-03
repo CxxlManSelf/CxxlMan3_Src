@@ -57,8 +57,8 @@ namespace CXXL
         // 否則進行存活持有者搜尋，若找不到也會進行銷毀
         virtual void cxxlFASTCALL checkDestroy(const IDestroyable *pDestroyable) = 0;
 
-        // 被銷毀處理器巡行過的 LifeRes 被設定 fFlag，須叫用此函數以便巡行後將 fFlag 清除
-        virtual void cxxlFASTCALL clearFlag(const IDestroyable *pDestroyable) = 0;
+        // 被銷毀處理器巡行過的 LifeRes 被設定 fFlag，須叫用此函數記錄以便巡行後將 fFlag 清除
+        virtual void cxxlFASTCALL reset_fFlag(const IDestroyable *pDestroyable) = 0;
     };
 
     // 定義在外部的 ILifeResDestructor 的實例指標

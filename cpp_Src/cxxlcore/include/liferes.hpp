@@ -271,7 +271,7 @@ namespace CXXL
         if (fFlag) return true;
 
         fFlag = true;   // 設為已找過的狀態
-        g_pLifeResDestructor->clearFlag(this);
+        g_pLifeResDestructor->reset_fFlag(this);
 
         std::lock_guard<std::mutex> lock(m_LifeResMutex);
 

@@ -81,7 +81,7 @@ namespace CXXL
             m_gate.release();
         }
 
-        void cxxlFASTCALL clearFlag(const IDestroyable *pDestroyable)
+        void cxxlFASTCALL reset_fFlag(const IDestroyable *pDestroyable)
         {
             m_LifeResSet_fFlag.push_back(const_cast<IDestroyable *>(pDestroyable));
         }
@@ -92,9 +92,9 @@ namespace CXXL
 
     class CLifeResDestructor : public ILifeResDestructor
     {
-        virtual void cxxlFASTCALL clearFlag(const IDestroyable *pDestroyable) override
+        virtual void cxxlFASTCALL reset_fFlag(const IDestroyable *pDestroyable) override
         {
-
+            g_Destructor.reset_fFlag(pDestroyable);
         }
 
         void cxxlFASTCALL checkDestroy(const IDestroyable *pDestroyable)
