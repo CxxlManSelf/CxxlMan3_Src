@@ -17,6 +17,8 @@ namespace CXXL
 
         std::mutex m_mutex;
 
+		bool m_isOver = false; // 是否結束執行緒的標識
+
         // 待銷毀清單
         std::list<std::shared_ptr<IDestroyable> > m_list;
 
@@ -32,7 +34,7 @@ namespace CXXL
         // 銷毀處理器所用的執行緒
         void cxxlFASTCALL threadProc()
         {
-            while (true)
+            while (!m_isOver)
             {
                 // 用於取得待銷毀物件
                 std::shared_ptr<IDestroyable> destroyable_ptr;
@@ -72,6 +74,12 @@ namespace CXXL
             m_threadPool(std::bind(&LifeResDestructor::threadProc, this));
         }
 
+		// Destructor
+		~LifeResDestructor()
+		{
+			m_isOver = true;
+			m_gate.release();
+        }
 
         // 放入待銷毀物件
         void cxxlFASTCALL add(const std::shared_ptr<IDestroyable> &destroyable_ptr)

@@ -25,7 +25,7 @@ namespace CXXL
     class _LifeRes;
 
     // 要被銷毀的 LifeRes 的界面，作為要被銷毀處理器銷毀的作用對象
-    class IDestroyable
+    class CXXLCORE_DLLEXPORT IDestroyable
     {
     public:
         virtual ~IDestroyable() = default;

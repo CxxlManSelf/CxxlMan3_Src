@@ -1,5 +1,5 @@
 /****************************************************************************************
- * threadmgr.hpp v1.0.3
+ * threadmgr.hpp v1.0.4
  *
  *  提供兩個執行緒的管理功能
  *
@@ -45,7 +45,7 @@ namespace CXXL
         size_t m_maxThreads;     // 最大執行緒數量
         size_t m_numThreads = 0; // 目前執行緒數量
 
-        cxxlSemaphore m_isOver{1,1};    // 等待所有 thread 都結束
+        cxxlSemaphore m_allTasksDone{1,1};    // 等待所有 thread 都結束
 
         // 由 thredProc() 呼叫
         // 取出一個任務，若回覆 false 則 thredProc 會結束
@@ -59,7 +59,7 @@ namespace CXXL
 
                 if (m_numThreads == 0) // 所有執行緒都結束
                 {
-                    m_isOver.release();
+                    m_allTasksDone.release();
                 }
 
                 return false;
@@ -96,7 +96,7 @@ namespace CXXL
                 std::lock_guard<std::mutex> lock(m_task_mutex);
                 m_isStop = true;
             }
-            m_isOver.wait();
+            m_allTasksDone.wait();
         }
 
         // 清除任務佇列
@@ -113,11 +113,11 @@ namespace CXXL
         { 
             while(true)
             {
-                m_isOver.wait(); 
+                m_allTasksDone.wait(); 
                 // if (m_tasks.empty() && m_numThreads == 0) 應該不須要這樣的判斷
                 if(m_numThreads == 0)
                 {
-                    m_isOver.release();
+                    m_allTasksDone.release();
                     break;
                 }
             }           
@@ -144,7 +144,7 @@ namespace CXXL
                 if(m_isStop) // 如果是要結束所有執行緒
                     return std::nullopt;
 
-                m_isOver.zero();
+                m_allTasksDone.zero();
 
                 m_tasks.emplace([task]()
                                 { (*task)(); });
@@ -175,7 +175,7 @@ namespace CXXL
         size_t m_maxThreads;     // 最大執行緒數量
         size_t m_numThreads = 0; // 目前多少執行緒在執行
 
-        cxxlSemaphore m_isOver{1,1};    // 等待所有的任務都結束
+        cxxlSemaphore m_allTasksDone{1,1};    // 等待所有的任務都結束
 
         // 由 thredProc() 呼叫
         // 取出一個任務，若回覆 false 則 thredProc 會 block
@@ -189,7 +189,7 @@ namespace CXXL
 
                 if (m_numThreads == 0) // 所有任務都結束
                 {
-                    m_isOver.release();
+                    m_allTasksDone.release();
                 }
 
                 return false;
@@ -241,7 +241,7 @@ namespace CXXL
                 for (size_t i = 0; i < m_maxThreads; ++i)
                     m_gate.release();
             }
-            m_isOver.wait();
+            m_allTasksDone.wait();
         }
 
 
@@ -250,11 +250,11 @@ namespace CXXL
         { 
             while(true)
             {
-                m_isOver.wait(); 
+                m_allTasksDone.wait(); 
                 std::lock_guard<std::mutex> lock(m_task_mutex);
                 if (m_tasks.empty() && m_numThreads == 0)
                 {
-                    m_isOver.release();
+                    m_allTasksDone.release();
                     break;
                 }
             }           
@@ -281,7 +281,7 @@ namespace CXXL
                 if(m_isStop) // 如果是要結束所有執行緒
                     return std::nullopt;
 
-                m_isOver.zero();
+                m_allTasksDone.zero();
 
                 m_tasks.emplace([task]()
                                 { (*task)(); });

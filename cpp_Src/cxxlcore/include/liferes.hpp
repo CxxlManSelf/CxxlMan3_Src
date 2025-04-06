@@ -79,12 +79,12 @@ namespace CXXL
 
             virtual void cxxlFASTCALL LD_clearFlag() override final; // class IDestroyable
 
-            std::mutex m_LifeResMutex;
+            std::mutex &m_LifeResMutex;
 
 
             // 持有此物件的 _OwnerObserverBase 集合
             std::unordered_set<const _OwnerObserverBase *>
-                m_OwnerObserverSet;
+                &m_OwnerObserverSet;
 
             // 虛擬函數，用來通知延伸類別增加了一個 LifeOwner 持有者
             virtual void cxxlFASTCALL addOwner() = 0;
@@ -106,10 +106,10 @@ namespace CXXL
 
         public:
             // Constructor
-            _LifeRes() = default;
+            _LifeRes();
 
             // Destructor
-            virtual ~_LifeRes() {}
+            virtual ~_LifeRes();
 
             bool cxxlFASTCALL attachObserver(const _OwnerObserverBase *pObserver);
 
@@ -154,6 +154,7 @@ namespace CXXL
                 assert(!chkLifeOne && "LifeRes<ALL> and LifeRes<ONE> are multiple inheritance!");
 #endif
             }
+        public:
 
             // Destructor
             virtual ~_LifeResAll() {}
@@ -184,6 +185,9 @@ namespace CXXL
                 assert(!chkLifeAll && "LifeRes<ALL> and LifeRes<ONE> are multiple inheritance!");
 #endif
             }
+		public:
+			// Destructor
+			virtual ~_LifeResOne() {}
         };
 
         // LifeOwner 和 LifeObserver 的基礎類別
@@ -226,15 +230,26 @@ namespace CXXL
     // 所有 LifeOwner 放棄持有才會被銷毀
     // 強制 virtual 繼承 _LifeResAll
     template <>
-    class LifeRes<LifeResType::ALL> : virtual LifeResourcePrivate::_LifeResAll
+    class LifeRes<LifeResType::ALL> : public virtual LifeResourcePrivate::_LifeResAll
     {
+	public:
+		// Constructor
+        LifeRes() {}
+		// Destructor
+        virtual ~LifeRes() {}
+
     };
 
     // 只要一個 LifeOwner 放棄持有就會被銷毀
     // 強制 virtual 繼承 _LifeResOne
     template <>
-    class LifeRes<LifeResType::ONE> : virtual LifeResourcePrivate::_LifeResOne
+    class LifeRes<LifeResType::ONE> : public virtual LifeResourcePrivate::_LifeResOne
     {
+	public:
+        // Constructor
+        LifeRes() {}
+        // Destructor
+        virtual ~LifeRes() {}
     };
 
     /*****************************************************************************/

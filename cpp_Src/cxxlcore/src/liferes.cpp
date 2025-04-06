@@ -145,4 +145,19 @@ namespace CXXL
         g_pLifeResDestructor->checkDestroy(std::static_pointer_cast<IDestroyable>(lifeRes_ptr));
     }
 
+    // Constructor
+    LifeResourcePrivate::_LifeRes::_LifeRes()
+        :m_LifeResMutex(*new std::mutex),
+        m_OwnerObserverSet(*new std::unordered_set<const _OwnerObserverBase*>)
+    {
+    }
+
+    // Destructor
+    LifeResourcePrivate::_LifeRes::~_LifeRes()
+    {
+        delete& m_LifeResMutex;
+		delete& m_OwnerObserverSet;
+    }
+
+
 }
