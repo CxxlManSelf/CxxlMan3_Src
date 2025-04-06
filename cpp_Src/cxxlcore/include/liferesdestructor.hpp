@@ -16,13 +16,7 @@
 
 #include "commondef.hpp"
 #include "sysdef.hpp"
-
-#if defined(_CXXLCORE_DLLEXPORT)
-#define CXXLCORE_DLLEXPORT CXXL_DLLEXPORT
-#else
-#define CXXLCORE_DLLEXPORT CXXL_DLLIMPORT
-#endif
-
+#include "cxxlcore.hpp"
 
 
 namespace CXXL
