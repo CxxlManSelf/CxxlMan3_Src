@@ -1,5 +1,5 @@
 /************************************************************************************************
- * liferes.hpp v0.1.0
+ * liferes.hpp v1.0.0
  *
  * LifeRes<>    生命資源，由此延伸出來的類別可以被安全共享，可以由 LifeOwner 的持有來決定物件的生存。
  *              可分為
@@ -79,12 +79,12 @@ namespace CXXL
 
             virtual void cxxlFASTCALL LD_clearFlag() override final; // class IDestroyable
 
-            std::mutex &m_LifeResMutex;
+            std::mutex m_LifeResMutex;
 
 
             // 持有此物件的 _OwnerObserverBase 集合
             std::unordered_set<const _OwnerObserverBase *>
-                &m_OwnerObserverSet;
+                m_OwnerObserverSet;
 
             // 虛擬函數，用來通知延伸類別增加了一個 LifeOwner 持有者
             virtual void cxxlFASTCALL addOwner() = 0;
@@ -271,7 +271,7 @@ namespace CXXL
         virtual void cxxlFASTCALL detachLifeRes(const LifeResourcePrivate::_LifeRes *pChkLifeRes) 
           const override final
         {
-            const LIFERES *pLifeRes = dynamic_cast<const LIFERES *>(pChkLifeRes);
+            const LIFERES *pLifeRes = reinterpret_cast<const LIFERES *>(pChkLifeRes);
             m_detachLifeResFunc(pLifeRes);
         }
 
@@ -334,6 +334,15 @@ namespace CXXL
             pLifeRes->detachObserver(this);
             m_lifeRes_ptr.reset();
         }
+
+		// 給使用端檢查 pChkLifeRes 是不是和持有的 LifeRes 相匹配
+        bool cxxlFASTCALL chkLifeRes(const LIFERES *pChkLifeRes) const
+        {
+			if (m_lifeRes_ptr == nullptr) return false;
+            LifeResourcePrivate::_LifeRes* pLifeRes = (LifeResourcePrivate::_LifeRes*)m_lifeRes_ptr.get();
+			return pLifeRes == reinterpret_cast<const LifeResourcePrivate::_LifeRes *>(pChkLifeRes);
+        }
+
     };
 
     /*
@@ -354,7 +363,7 @@ namespace CXXL
         virtual void cxxlFASTCALL detachLifeRes(const LifeResourcePrivate::_LifeRes *pChkLifeRes)
           const override final
         {
-            const LIFERES *pLifeRes = dynamic_cast<const LIFERES *>(pChkLifeRes);
+            const LIFERES *pLifeRes = reinterpret_cast<const LIFERES *>(pChkLifeRes);
             m_detachLifeResFunc(pLifeRes);
         }
 
@@ -421,6 +430,15 @@ namespace CXXL
             tmp_ptr->detachOwner(this);
             tmp_ptr->checkDestroy(tmp_ptr);
         }
+
+        // 給使用端檢查 pChkLifeRes 是不是和持有的 LifeRes 相匹配
+        bool cxxlFASTCALL chkLifeRes(const LIFERES *pChkLifeRes) const
+        {
+            if (m_lifeRes_ptr == nullptr) return false;
+            LifeResourcePrivate::_LifeRes* pLifeRes = (LifeResourcePrivate::_LifeRes*)m_lifeRes_ptr.get();
+            return pLifeRes == reinterpret_cast<const LifeResourcePrivate::_LifeRes *>(pChkLifeRes);
+        }
+
     };
 
 }

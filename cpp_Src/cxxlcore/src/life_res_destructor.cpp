@@ -9,15 +9,20 @@
 namespace CXXL
 {
 
+    // 用於等待銷毀器的待銷毀清單清空
+	cxxlSemaphore g_waitDestructorEmptied;
+
+
     // 銷毀處理器
     class LifeResDestructor
     {
         // 建立一個獨立的執行緒，專門處理銷毀
-        ThreadPool m_threadPool{1};
+		// ThreadPool m_threadPool{1}; // main() 結束時會先砍掉所有子執行緒，所以用這個不行
 
         std::mutex m_mutex;
 
 		bool m_isOver = false; // 是否結束執行緒的標識
+		// std::optional<std::future<void>> m_future; // 執行緒的回傳值，等待執行緒結束
 
         // 待銷毀清單
         std::list<std::shared_ptr<IDestroyable> > m_list;
@@ -39,7 +44,7 @@ namespace CXXL
                 // 用於取得待銷毀物件
                 std::shared_ptr<IDestroyable> destroyable_ptr;
 
-                m_gate.wait();
+                m_gate.wait([] {g_waitDestructorEmptied.release(); });
 
                 while (true)
                 {
@@ -71,7 +76,9 @@ namespace CXXL
         // Constructor
         LifeResDestructor()
         {
-            m_threadPool(std::bind(&LifeResDestructor::threadProc, this));
+            // m_future = m_threadPool(std::bind(&LifeResDestructor::threadProc, this));
+			std::thread([this]
+				{ this->threadProc(); }).detach();
         }
 
 		// Destructor
@@ -79,6 +86,7 @@ namespace CXXL
 		{
 			m_isOver = true;
 			m_gate.release();
+			// m_future->wait(); // 等待執行緒結束
         }
 
         // 放入待銷毀物件
@@ -87,6 +95,7 @@ namespace CXXL
             std::lock_guard<std::mutex> lock(m_mutex);
             m_list.push_front(destroyable_ptr);
             m_gate.release();
+            g_waitDestructorEmptied.zero();
         }
 
         void cxxlFASTCALL reset_fFlag(const IDestroyable *pDestroyable)
@@ -116,4 +125,8 @@ namespace CXXL
 
     ILifeResDestructor *g_pLifeResDestructor = &g_LifeResDestructor;
 
+	void cxxlFASTCALL waitDestructorEmptied()
+	{
+        g_waitDestructorEmptied.wait();
+    }
 }

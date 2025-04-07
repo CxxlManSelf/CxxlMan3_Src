@@ -60,13 +60,15 @@ namespace CXXL
     {
         m_LifeResMutex.lock();
         m_isDestroy = true;
-        while (m_OwnerObserverSet.size() > 0)
+        while (true)
         {
             auto it = m_OwnerObserverSet.begin();
-            // m_OwnerObserverSet.erase(it);
+			if (it == m_OwnerObserverSet.end())
+				break;  
+            
             m_LifeResMutex.unlock();
             // 解鎖之後，不用擔心 _OwnerObserverBase 會不存在
-            // 因為這是銷毀處理器的約定機制
+            // 這是銷毀處理的機制            
             (*it)->detachLifeRes(this);
             m_LifeResMutex.lock();
         }
@@ -121,6 +123,7 @@ namespace CXXL
     void cxxlFASTCALL LifeResourcePrivate::_LifeRes::detachOwner(const _OwnerObserverBase *pOwner)
     {
         std::lock_guard<std::mutex> lock(m_LifeResMutex);
+		detach(pOwner);
         m_isDestroy = removeOwner();
     }
 
@@ -147,16 +150,12 @@ namespace CXXL
 
     // Constructor
     LifeResourcePrivate::_LifeRes::_LifeRes()
-        :m_LifeResMutex(*new std::mutex),
-        m_OwnerObserverSet(*new std::unordered_set<const _OwnerObserverBase*>)
     {
     }
 
     // Destructor
     LifeResourcePrivate::_LifeRes::~_LifeRes()
     {
-        delete& m_LifeResMutex;
-		delete& m_OwnerObserverSet;
     }
 
 

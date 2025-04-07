@@ -1,5 +1,5 @@
 /****************************************************************************************
- * threadmgr.hpp v1.0.4
+ * threadmgr.hpp v1.0.5
  *
  *  提供兩個執行緒的管理功能
  *
@@ -182,15 +182,10 @@ namespace CXXL
         // 若已是最後一個 thredProc 的呼叫，還會通知所有任務結束
         bool cxxlFASTCALL getTask(std::function<void(void)> &Func)
         {
-            std::lock_guard<std::mutex> lock(m_task_mutex);
+            // std::lock_guard<std::mutex> lock(m_task_mutex);
             if (m_tasks.empty())
             {
                 --m_numThreads; // 表示有一個執行緒會 block
-
-                if (m_numThreads == 0) // 所有任務都結束
-                {
-                    m_allTasksDone.release();
-                }
 
                 return false;
             }
@@ -203,17 +198,33 @@ namespace CXXL
         void cxxlFASTCALL threadProc()
         {
             std::function<void(void)> Func;
-            while (m_isStop == false)
+            while (true)
             {
                 m_gate.wait();
+                m_task_mutex.lock();
                 ++m_numThreads;
+                if(m_isStop && m_tasks.empty())
+                    break;
                 while (true)
                 {
                     if (!getTask(Func))
+                    {
+                        m_task_mutex.unlock();
                         break;
+                    }
+                    m_task_mutex.unlock();
                     Func();
+                    m_task_mutex.lock();
                 }
             }
+
+            if(m_numThreads == m_maxThreads) // 所有執行緒都結束
+            {
+                m_task_mutex.unlock();
+                m_allTasksDone.release();
+            }
+            else
+                m_task_mutex.unlock();
         }
 
 
@@ -285,6 +296,8 @@ namespace CXXL
 
                 m_tasks.emplace([task]()
                                 { (*task)(); });
+
+                m_gate.release();
             }
             
             return std::move(res); // 返回結果

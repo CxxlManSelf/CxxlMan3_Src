@@ -58,6 +58,8 @@ namespace CXXL
     // 定義在外部的 ILifeResDestructor 的實例指標
     extern CXXLCORE_DLLEXPORT ILifeResDestructor *g_pLifeResDestructor;
 
+    // 等待銷毀器的待銷毀清單清空
+    extern CXXLCORE_DLLEXPORT void cxxlFASTCALL waitDestructorEmptied();
 
 }
 

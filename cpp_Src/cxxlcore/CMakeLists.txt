@@ -32,6 +32,8 @@ install(TARGETS ${TARGET_NAME}
         ARCHIVE DESTINATION lib
         )
 
-install(FILES $<TARGET_PDB_FILE:${TARGET_NAME}> DESTINATION bin OPTIONAL)
+if (MSVC)        
+    install(FILES $<TARGET_PDB_FILE:${TARGET_NAME}> DESTINATION bin OPTIONAL)
+endif()
 
 install(DIRECTORY include/ DESTINATION include)
