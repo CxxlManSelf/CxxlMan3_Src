@@ -1,5 +1,5 @@
 /****************************************************************************************
- * threadmgr.hpp v1.0.6
+ * threadmgr.hpp v1.0.7
  *
  *  提供兩個執行緒的管理功能
  *
@@ -98,9 +98,11 @@ namespace CXXL
                 std::lock_guard<std::mutex> lock(m_task_mutex);
                 m_isStop = true;
             }
-#if(NOTWAIT == false)
-            m_allTasksDone.wait();
-#endif
+
+            if constexpr (NOTWAIT == false) 
+            {
+                m_allTasksDone.wait();        
+            }
         }
 
         // 清除任務佇列
@@ -259,9 +261,11 @@ namespace CXXL
                 for (size_t i = 0; i < m_maxThreads; ++i)
                     m_gate.release();
             }
-#if(NOTWAIT == false)
-            m_allTasksDone.wait();
-#endif
+
+            if constexpr (NOTWAIT == false) 
+            {
+                m_allTasksDone.wait();
+            }
         }
 
 
