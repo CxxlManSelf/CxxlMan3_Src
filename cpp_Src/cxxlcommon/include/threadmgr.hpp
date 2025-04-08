@@ -1,5 +1,5 @@
 /****************************************************************************************
- * threadmgr.hpp v1.0.5
+ * threadmgr.hpp v1.0.6
  *
  *  提供兩個執行緒的管理功能
  *
@@ -35,6 +35,8 @@ namespace CXXL
 {
 
     // 機動增減執行緒的數量
+	// NOTWAIT = true 時，解構函數不等待所有執行緒結束 
+	template <bool NOTWAIT = false>
     class ThreadLimiter
     {
         std::mutex m_task_mutex;
@@ -96,7 +98,9 @@ namespace CXXL
                 std::lock_guard<std::mutex> lock(m_task_mutex);
                 m_isStop = true;
             }
+#if(NOTWAIT == false)
             m_allTasksDone.wait();
+#endif
         }
 
         // 清除任務佇列
@@ -164,6 +168,9 @@ namespace CXXL
 
     /*********************************************************************************************** */
 
+    // 建構時已備妥所指定的執行緒數量 
+    // NOTWAIT = true 時，解構函數不等待所有執行緒結束 
+    template <bool NOTWAIT = false>
     class ThreadPool
     {
         std::mutex m_task_mutex;
@@ -252,7 +259,9 @@ namespace CXXL
                 for (size_t i = 0; i < m_maxThreads; ++i)
                     m_gate.release();
             }
+#if(NOTWAIT == false)
             m_allTasksDone.wait();
+#endif
         }
 
 
