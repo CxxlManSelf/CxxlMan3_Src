@@ -1,5 +1,5 @@
 /****************************************************************************************
- * threadmgr.hpp v1.0.7
+ * threadmgr.hpp v1.0.9
  *
  *  提供兩個執行緒的管理功能
  *
@@ -7,8 +7,8 @@
  *                的最大活動數量，沒事做的執行緒就會結束。這樣比較節省執行緒的使用量，但是多
  *                了重複創造執行緒所須的時間
  *
- *  ThreadPool 準備好指定的執行緒數量，ThreadPool 未喂結束前執行緒不會結束，這樣可以節省
- *             創建執行緒的時間。但是未占用執行緒的數量，系統所能提供的執行緒數量是有限的
+ *  ThreadPool 準備好指定的執行緒數量，ThreadPool 未結束前執行緒不會結束，這樣可以節省
+ *             創建執行緒的時間。但是會占用執行緒的數量，系統所能提供的執行緒數量是有限的
  *
  *  任務可以是有參數和回傳值的函數，用 std::packaged_task 包裝，這樣可以在兩個執
  *  行緒之間做溝通
@@ -48,6 +48,9 @@ namespace CXXL
         size_t m_numThreads = 0; // 目前執行緒數量
 
         cxxlSemaphore m_allTasksDone{1,1};    // 等待所有 thread 都結束
+        
+        // 目前有多少在使用 waitAllTask()
+        std::atomic<size_t> m_numWaitUsers{0}; 
 
         // 由 thredProc() 呼叫
         // 取出一個任務，若回覆 false 則 thredProc 會結束
@@ -103,6 +106,11 @@ namespace CXXL
             {
                 m_allTasksDone.wait();        
             }
+
+            while(m_numWaitUsers > 0)
+            {
+                m_allTasksDone.release();
+            }
         }
 
         // 清除任務佇列
@@ -117,14 +125,18 @@ namespace CXXL
         // 等待所有任務結束
         void cxxlFASTCALL waitAllTask() 
         { 
+            ++m_numWaitUsers;
             while(true)
             {
-                m_allTasksDone.wait(); 
-                // if (m_tasks.empty() && m_numThreads == 0) 應該不須要這樣的判斷
-                if(m_numThreads == 0)
+                m_allTasksDone.wait();
                 {
-                    m_allTasksDone.release();
-                    break;
+                    std::lock_guard<std::mutex> lock(m_task_mutex);
+                    if(m_numThreads == 0)
+                    {
+                        m_allTasksDone.release();
+                        --m_numWaitUsers;
+                        break;
+                    }    
                 }
             }           
         }
@@ -186,15 +198,25 @@ namespace CXXL
 
         cxxlSemaphore m_allTasksDone{1,1};    // 等待所有的任務都結束
 
+        // 目前有多少在使用 waitAllTask()
+        std::atomic<size_t> m_numWaitUsers{0}; 
+
+        bool m_isExit = false; // 為 true 表示解構函數要所有執行緒離開 
+
         // 由 thredProc() 呼叫
         // 取出一個任務，若回覆 false 則 thredProc 會 block
         // 若已是最後一個 thredProc 的呼叫，還會通知所有任務結束
         bool cxxlFASTCALL getTask(std::function<void(void)> &Func)
         {
-            // std::lock_guard<std::mutex> lock(m_task_mutex);
+            std::lock_guard<std::mutex> lock(m_task_mutex);
             if (m_tasks.empty())
             {
                 --m_numThreads; // 表示有一個執行緒會 block
+
+                if (m_numThreads == 0) // 所有執行緒都結束
+                {
+                    m_allTasksDone.release();
+                }
 
                 return false;
             }
@@ -210,23 +232,22 @@ namespace CXXL
             while (true)
             {
                 m_gate.wait();
-                m_task_mutex.lock();
-                ++m_numThreads;
-                if(m_isStop && m_tasks.empty())
-                    break;
+                {
+                    std::lock_guard<std::mutex> lock(m_task_mutex);
+                    ++m_numThreads;
+                    if(m_isExit)
+                        break;
+                }
+
                 while (true)
                 {
                     if (!getTask(Func))
-                    {
-                        m_task_mutex.unlock();
                         break;
-                    }
-                    m_task_mutex.unlock();
                     Func();
-                    m_task_mutex.lock();
                 }
             }
-
+            
+            m_task_mutex.lock();
             if(m_numThreads == m_maxThreads) // 所有執行緒都結束
             {
                 m_task_mutex.unlock();
@@ -257,14 +278,27 @@ namespace CXXL
             {
                 std::lock_guard<std::mutex> lock(m_task_mutex);
                 m_isStop = true;
-                // 讓被 block 的執行緒結束
-                for (size_t i = 0; i < m_maxThreads; ++i)
-                    m_gate.release();
             }
 
             if constexpr (NOTWAIT == false) 
             {
                 m_allTasksDone.wait();
+            }
+
+            m_isExit = true;
+
+            // 讓被 block 的執行緒結束
+            for (size_t i = 0; i < m_maxThreads; ++i)
+                m_gate.release();
+
+            if constexpr (NOTWAIT == false) 
+            {
+                m_allTasksDone.wait();
+            }
+    
+            while(m_numWaitUsers > 0)
+            {
+                m_allTasksDone.release();
             }
         }
 
@@ -272,14 +306,18 @@ namespace CXXL
         // 等待所有任務結束
         void cxxlFASTCALL waitAllTask() 
         { 
+            ++m_numWaitUsers;
             while(true)
             {
-                m_allTasksDone.wait(); 
-                std::lock_guard<std::mutex> lock(m_task_mutex);
-                if (m_tasks.empty() && m_numThreads == 0)
+                m_allTasksDone.wait();
                 {
-                    m_allTasksDone.release();
-                    break;
+                    std::lock_guard<std::mutex> lock(m_task_mutex);
+                    if (m_tasks.empty() && m_numThreads == 0)
+                    {
+                        m_allTasksDone.release();
+                        --m_numWaitUsers;
+                        break;
+                    }    
                 }
             }           
         }
