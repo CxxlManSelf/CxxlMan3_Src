@@ -1,5 +1,5 @@
 /****************************************************************************************
- * threadmgr.hpp v1.0.9
+ * threadmgr.hpp v1.0.10
  *
  *  提供兩個執行緒的管理功能
  *
@@ -303,8 +303,8 @@ namespace CXXL
         }
 
         // ThreadPool 獨有
-        // 等待完成所有任務后刪除所有執行緒
-        void cxxlFASTCALL waitAllTaskAndExit()
+        // 等待完成所有任務后清除所有執行緒
+        void cxxlFASTCALL waitAllTaskAndClear()
         {
             waitAllTask();
             {
@@ -326,7 +326,6 @@ namespace CXXL
             }
 
             m_allTasksDone.release();
-
         }
 
 
