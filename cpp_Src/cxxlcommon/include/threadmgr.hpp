@@ -302,6 +302,33 @@ namespace CXXL
             }
         }
 
+        // ThreadPool 獨有
+        // 等待完成所有任務后刪除所有執行緒
+        void cxxlFASTCALL waitAllTaskAndExit()
+        {
+            waitAllTask();
+            {
+                std::lock_guard<std::mutex> lock(m_task_mutex);
+                m_isStop = true;
+            }
+
+            m_isExit = true;
+
+            // 讓被 block 的執行緒結束
+            for (size_t i = 0; i < m_maxThreads; ++i)
+                m_gate.release();
+
+            m_allTasksDone.wait();
+
+            while(m_numWaitUsers > 0)
+            {
+                m_allTasksDone.release();
+            }
+
+            m_allTasksDone.release();
+
+        }
+
 
         // 等待所有任務結束
         void cxxlFASTCALL waitAllTask() 
