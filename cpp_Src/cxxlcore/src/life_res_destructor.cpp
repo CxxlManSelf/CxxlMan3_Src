@@ -45,6 +45,7 @@ namespace CXXL
                 std::shared_ptr<IDestroyable> destroyable_ptr;
 
                 m_gate.wait([] {g_waitDestructorEmptied.release(); });
+                g_waitDestructorEmptied.zero();
 
                 while (true)
                 {
@@ -92,10 +93,10 @@ namespace CXXL
         // 放入待銷毀物件
         void cxxlFASTCALL add(const std::shared_ptr<IDestroyable> &destroyable_ptr)
         {
+            g_waitDestructorEmptied.zero();
             std::lock_guard<std::mutex> lock(m_mutex);
             m_list.push_front(destroyable_ptr);
             m_gate.release();
-            g_waitDestructorEmptied.zero();
         }
 
         void cxxlFASTCALL reset_fFlag(const IDestroyable *pDestroyable)

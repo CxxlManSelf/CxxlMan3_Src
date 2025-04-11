@@ -1,3 +1,4 @@
+#include "rmconst.hpp"
 #include "liferes.hpp"
 
 namespace CXXL
