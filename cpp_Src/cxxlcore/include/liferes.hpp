@@ -1,5 +1,5 @@
 /************************************************************************************************
- * liferes.hpp v1.0.6
+ * liferes.hpp v1.0.7
  *
  * LifeRes<>    生命資源，由此延伸出來的類別可以被安全共享，可以由 LifeOwner 的持有來決定物件的生存。
  *              可分為
@@ -22,6 +22,7 @@
 #include <memory>
 #include <cassert>
 
+#include "rmconst.hpp"
 #include "liferesdestructor.hpp"
 
 namespace CXXL
@@ -334,8 +335,8 @@ namespace CXXL
             if (m_lifeRes_ptr == nullptr)
                 return false;
 
-            LifeResourcePrivate::_LifeRes *p = (LifeResourcePrivate::_LifeRes *)m_lifeRes_ptr.get();
-            void *pLifeRes = (void *)p;
+            const LifeResourcePrivate::_LifeRes *p = (const LifeResourcePrivate::_LifeRes *)m_lifeRes_ptr.get();
+            void *pLifeRes = (void *)(( RmConst<decltype(p)>::type )p);
 
             return pLifeRes == pChkLifeRes;
         }
@@ -431,8 +432,9 @@ namespace CXXL
             if (m_lifeRes_ptr == nullptr)
                 return false;
 
-            LifeResourcePrivate::_LifeRes *p = (LifeResourcePrivate::_LifeRes *)m_lifeRes_ptr.get();
-            void *pLifeRes = (void *)p;
+            const LifeResourcePrivate::_LifeRes *p = (const LifeResourcePrivate::_LifeRes *)m_lifeRes_ptr.get();
+            void *pLifeRes = (void *)(( RmConst<decltype(p)>::type )p);
+            
 
             return pLifeRes == pChkLifeRes;
         }

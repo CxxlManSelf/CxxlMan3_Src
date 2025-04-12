@@ -1,4 +1,4 @@
-#include "rmconst.hpp"
+
 #include "liferes.hpp"
 
 namespace CXXL
@@ -25,7 +25,7 @@ namespace CXXL
         {            
             auto pHost = it->m_pHost;
 
-            fNoRootLifeRes = ((RmConst<decltype(pHost)>::type)pHost)->checkNoHost();
+            fNoRootLifeRes = ((RmConst<decltype(pHost)>::type)pHost)->checkNoHost();            
             if(!fNoRootLifeRes) break;
         }
         return fNoRootLifeRes;
