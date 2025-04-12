@@ -1,5 +1,5 @@
 /************************************************************************************************
- * liferesdestructor.hpp v1.0.0
+ * liferesdestructor.hpp v1.0.1
  *
  * 提供銷毀 LifeRes 功能的介面
  * 
@@ -58,8 +58,18 @@ namespace CXXL
     // 定義在外部的 ILifeResDestructor 的實例指標
     extern CXXLCORE_DLLEXPORT ILifeResDestructor *g_pLifeResDestructor;
 
-    // 等待銷毀器的待銷毀清單清空
-    extern CXXLCORE_DLLEXPORT void cxxlFASTCALL waitDestructorEmptied();
+
+    // 等待銷毀處理器的 待銷毀清單 清空，以及結束子執行緒
+    class ICore
+    {
+    public:
+        // Destructor
+        virtual ~ICore() {}
+    };
+
+    // 主程式須先取得核心銷毁控制器，並於結束前鎖毁。
+    // 此控制器只能取得一次。
+    extern CXXLCORE_DLLEXPORT std::shared_ptr<ICore> cxxlFASTCALL getDestructor();
 
 }
 
