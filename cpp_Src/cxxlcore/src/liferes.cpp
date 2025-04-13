@@ -7,26 +7,28 @@ namespace CXXL
     bool cxxlFASTCALL LifeResourcePrivate::_LifeRes::checkNoHost()
     {
         // 已找過
-        if (fFlag) return true;
+        if (fFlag)
+            return true;
 
-        fFlag = true;   // 設為已找過的狀態
+        fFlag = true; // 設為已找過的狀態
         g_pLifeResDestructor->reset_fFlag(this);
 
         std::lock_guard<std::mutex> lock(m_LifeResMutex);
 
-        if (rFlag == false)  // 本身是 rootLifeRes,或未放入過 _OwnerObserverBase 為 false
+        if (rFlag == false) // 本身是 rootLifeRes,或未放入過 _OwnerObserverBase 為 false
             return false;
 
         if (cFlag || m_OwnerObserverSet.size() == 0)
             return false; // 回報我也要處理待刪確認
-        
+
         bool fNoRootLifeRes = true; // 有找到 rootLifeRes 或還有要放棄持有的處理回覆 false
-        for(auto &it : m_OwnerObserverSet)
-        {            
+        for (auto &it : m_OwnerObserverSet)
+        {
             auto pHost = it->m_pHost;
 
-            fNoRootLifeRes = ((RmConst<decltype(pHost)>::type)pHost)->checkNoHost();            
-            if(!fNoRootLifeRes) break;
+            fNoRootLifeRes = ((RmConst<decltype(pHost)>::type)pHost)->checkNoHost();
+            if (!fNoRootLifeRes)
+                break;
         }
         return fNoRootLifeRes;
     }
@@ -35,26 +37,28 @@ namespace CXXL
     {
         std::lock_guard<std::mutex> lock(m_LifeResMutex);
 
-
-        if(m_isDestroy) return ldFlag = true; // 已標識須銷毀
+        if (m_isDestroy)
+            return ldFlag = true; // 已標識須銷毀
 
         // 無持有者了
-        if(m_OwnerObserverSet.size() == 0) return ldFlag = true;
+        if (m_OwnerObserverSet.size() == 0)
+            return ldFlag = true;
 
-        fFlag = true;   // 設為已找過的狀態
+        fFlag = true; // 設為已找過的狀態
 
         bool fNoRootLifeRes; // 檢查是不是已經沒有未銷毀的 Host 存在
-        for(auto &it : m_OwnerObserverSet)
+        for (auto &it : m_OwnerObserverSet)
         {
             auto pHost = it->m_pHost;
             fNoRootLifeRes = ((RmConst<decltype(pHost)>::type)pHost)->checkNoHost();
-            if(!fNoRootLifeRes) break;
+            if (!fNoRootLifeRes)
+                break;
         }
 
-        cFlag = 0;  // 可再被放入待刪佇列
+        cFlag = 0; // 可再被放入待刪佇列
         fFlag = false;
 
-        return ldFlag = fNoRootLifeRes; 
+        return ldFlag = fNoRootLifeRes;
     }
 
     void cxxlFASTCALL LifeResourcePrivate::_LifeRes::LD_destroy()
@@ -64,12 +68,12 @@ namespace CXXL
         while (true)
         {
             auto it = m_OwnerObserverSet.begin();
-			if (it == m_OwnerObserverSet.end())
-				break;  
-            
+            if (it == m_OwnerObserverSet.end())
+                break;
+
             m_LifeResMutex.unlock();
             // 解鎖之後，不用擔心 _OwnerObserverBase 會不存在
-            // 這是銷毀處理的機制            
+            // 這是銷毀處理的機制
             (*it)->detachLifeRes(this);
             m_LifeResMutex.lock();
         }
@@ -81,8 +85,7 @@ namespace CXXL
         fFlag = false;
     }
 
-
-/****************************************************************************************** */
+    /****************************************************************************************** */
 
     bool cxxlFASTCALL LifeResourcePrivate::_LifeRes::attach(const _OwnerObserverBase *pOwnerObserver)
     {
@@ -124,7 +127,7 @@ namespace CXXL
     void cxxlFASTCALL LifeResourcePrivate::_LifeRes::detachOwner(const _OwnerObserverBase *pOwner)
     {
         std::lock_guard<std::mutex> lock(m_LifeResMutex);
-		detach(pOwner);
+        detach(pOwner);
         m_isDestroy = removeOwner();
     }
 
@@ -159,5 +162,9 @@ namespace CXXL
     {
     }
 
-
+    bool cxxlFASTCALL LifeResourcePrivate::_LifeRes::isDestroy() const
+    {
+        std::lock_guard<std::mutex> lock(m_LifeResMutex);
+        return m_isDestroy;
+    }
 }

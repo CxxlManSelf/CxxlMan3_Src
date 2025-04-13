@@ -1,5 +1,5 @@
 /************************************************************************************************
- * liferes.hpp v1.0.7
+ * liferes.hpp v1.0.8
  *
  * LifeRes<>    生命資源，由此延伸出來的類別可以被安全共享，可以由 LifeOwner 的持有來決定物件的生存。
  *              可分為
@@ -76,7 +76,7 @@ namespace CXXL
 
             virtual void cxxlFASTCALL LD_clearFlag() override final; // class IDestroyable
 
-            std::mutex m_LifeResMutex;
+            mutable std::mutex m_LifeResMutex;
 
             // 持有此物件的 _OwnerObserverBase 集合
             std::unordered_set<const _OwnerObserverBase *>
@@ -117,6 +117,9 @@ namespace CXXL
 
             // Destructor
             virtual ~_LifeRes();
+            
+            // 檢查是否已經標記銷毀
+            bool cxxlFASTCALL isDestroy() const;
 
             template <typename LIFERES>
             friend class LifeObserver;
@@ -318,6 +321,15 @@ namespace CXXL
             attachLifeRes(liferes_ptr);
         }
 
+        // Getter
+        std::shared_ptr<LIFERES> cxxlFASTCALL getLifeRes() const 
+        { 
+            if(m_lifeRes_ptr != nullptr && m_lifeRes_ptr->isisDestroy() == false)
+                return m_lifeRes_ptr;
+
+            return nullptr;
+        }
+
         // 銷毀
         void cxxlFASTCALL destroy()
         {
@@ -408,6 +420,15 @@ namespace CXXL
         {
             destroy();
             attachLifeRes(lifeRes_ptr);
+        }
+
+        // Getter
+        std::shared_ptr<LIFERES> cxxlFASTCALL getLifeRes() const 
+        { 
+            if(m_lifeRes_ptr != nullptr && m_lifeRes_ptr->isisDestroy() == false)
+                return m_lifeRes_ptr;
+
+            return nullptr;
         }
 
         // 銷毀
