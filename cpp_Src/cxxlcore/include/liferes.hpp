@@ -1,5 +1,5 @@
 /************************************************************************************************
- * liferes.hpp v1.0.8
+ * liferes.hpp v1.0.12
  *
  * LifeRes<>    生命資源，由此延伸出來的類別可以被安全共享，可以由 LifeOwner 的持有來決定物件的生存。
  *              可分為
@@ -263,7 +263,8 @@ namespace CXXL
     {
         // 使用端要做好 _OwnerObserverBase 的同步控制，以及放棄持有 _LifeRes。
         // pChkLifeRes 作為要檢查的 _LifeRes，判斷持有的 _LifeRes 是否和要被放棄的 pChkLifeRes 相同
-        std::function<void(void *pChkLifeRes)> m_detachLifeResFunc;
+        // pSender 發出通知的 LifeObserver
+        std::function<void(LifeObserver<LIFERES> *pSender,void *pChkLifeRes)> m_detachLifeResFunc;
 
         // 要持有的 LifeRes
         mutable std::shared_ptr<LIFERES> m_lifeRes_ptr;
@@ -272,7 +273,7 @@ namespace CXXL
         virtual void cxxlFASTCALL detachLifeRes(const LifeResourcePrivate::_LifeRes *pChkLifeRes)
             const override final
         {
-            m_detachLifeResFunc((void *)pChkLifeRes);
+            m_detachLifeResFunc((LifeObserver<LIFERES> *)this,(void *)pChkLifeRes);
         }
 
         void cxxlFASTCALL attachLifeRes(const std::shared_ptr<LIFERES> &lifeRes_ptr)
@@ -291,7 +292,7 @@ namespace CXXL
         }
 
         void setLifeObserver(const std::shared_ptr<LIFERES> &liferes_ptr,
-                             const std::function<void(void *pChkLifeRes)> &detachLifeResFunc)
+                             const std::function<void(LifeObserver<LIFERES> *pSender,void *pChkLifeRes)> &detachLifeResFunc)
         {
             m_detachLifeResFunc = detachLifeResFunc;
             attachLifeRes(liferes_ptr);
@@ -302,7 +303,7 @@ namespace CXXL
         template <typename HOST>
         LifeObserver(const std::shared_ptr<LIFERES> &liferes_ptr,
                      HOST *pHost,
-                     const std::function<void(void *pChkLifeRes)> &detachLifeResFunc)
+                     const std::function<void(LifeObserver<LIFERES> *pSender,void *pChkLifeRes)> &detachLifeResFunc)
             : _OwnerObserverBase(pHost)
         {
             setLifeObserver(liferes_ptr, detachLifeResFunc);
@@ -324,7 +325,7 @@ namespace CXXL
         // Getter
         std::shared_ptr<LIFERES> cxxlFASTCALL getLifeRes() const 
         { 
-            if(m_lifeRes_ptr != nullptr && m_lifeRes_ptr->isisDestroy() == false)
+            if(m_lifeRes_ptr != nullptr && m_lifeRes_ptr->isDestroy() == false)
                 return m_lifeRes_ptr;
 
             return nullptr;
@@ -363,7 +364,8 @@ namespace CXXL
     {
         // 使用端要做好 _OwnerObserverBase 的同步控制，以及放棄持有 _LifeRes。
         // pChkLifeRes 作為要檢查的 _LifeRes，判斷持有的 _LifeRes 是否和要被放棄的 pChkLifeRes 相同
-        std::function<void(void *pChkLifeRes)> m_detachLifeResFunc;
+        // pSender 發出通知的 LifeOwner
+        std::function<void(LifeOwner<LIFERES> *pSender,void *pChkLifeRes)> m_detachLifeResFunc;
 
         // 要持有的 LifeRes
         mutable std::shared_ptr<LIFERES> m_lifeRes_ptr;
@@ -372,7 +374,7 @@ namespace CXXL
         virtual void cxxlFASTCALL detachLifeRes(const LifeResourcePrivate::_LifeRes *pChkLifeRes)
             const override final
         {
-            m_detachLifeResFunc((void *)pChkLifeRes);
+            m_detachLifeResFunc((LifeOwner<LIFERES> *)this, (void *)pChkLifeRes);
         }
 
         void cxxlFASTCALL attachLifeRes(const std::shared_ptr<LIFERES> &lifeRes_ptr)
@@ -392,7 +394,7 @@ namespace CXXL
 
         // Constructor
         void setLifeOwner(const std::shared_ptr<LIFERES> &liferes_ptr,
-                          const std::function<void(void *pChkLifeRes)> &detachLifeResFunc)
+                          const std::function<void(LifeOwner<LIFERES> *pSender, void *pChkLifeRes)> &detachLifeResFunc)
         {
             m_detachLifeResFunc = detachLifeResFunc;
             attachLifeRes(liferes_ptr);
@@ -403,7 +405,7 @@ namespace CXXL
         template <typename HOST>
         LifeOwner(const std::shared_ptr<LIFERES> &liferes_ptr,
                   HOST *pHost,
-                  const std::function<void(void *pChkLifeRes)> &detachLifeResFunc)
+                  const std::function<void(LifeOwner<LIFERES> *pSender, void *pChkLifeRes)> &detachLifeResFunc)
             : _OwnerObserverBase(pHost)
         {
             setLifeOwner(liferes_ptr, detachLifeResFunc);
@@ -425,7 +427,7 @@ namespace CXXL
         // Getter
         std::shared_ptr<LIFERES> cxxlFASTCALL getLifeRes() const 
         { 
-            if(m_lifeRes_ptr != nullptr && m_lifeRes_ptr->isisDestroy() == false)
+            if(m_lifeRes_ptr != nullptr && m_lifeRes_ptr->isDestroy() == false)
                 return m_lifeRes_ptr;
 
             return nullptr;
