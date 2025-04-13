@@ -15,13 +15,13 @@ class MyClassA : public LifeRes<LifeResType::ALL>
 public:    
     // Constructor
     MyClassA() 
-        : m_myB( std::shared_ptr<MyClassB>(),
+        : m_myB(std::shared_ptr<MyClassB>(nullptr),
             this,
-            [this](void *pChk)
+            [this](CxxlMan3::LifeOwner<MyClassB> *myB, void *pChk)
             {
                 std::lock_guard<std::mutex> lock(m_mutex);
-                if (m_myB.chkLifeRes(pChk))
-                    m_myB.destroy();
+                if (myB->chkLifeRes(pChk))
+                    myB->destroy();
             })
     {}
   
@@ -46,13 +46,13 @@ public:
 public:
     // Constructor
     MyClassB() 
-        : m_myA( std::shared_ptr<MyClassA>(),
+        : m_myA(std::shared_ptr<MyClassA>(),
             this,
-            [this](void *pChk)
+            [this](CxxlMan3::LifeOwner<MyClassA> *myA,void *pChk)
             {
                 std::lock_guard<std::mutex> lock(m_mutex);
-                if (m_myA.chkLifeRes(pChk))
-                    m_myA.destroy();
+                if (myA->chkLifeRes(pChk))
+                    myA->destroy();
             })
     {}
 
@@ -77,11 +77,11 @@ public:
     MyRoot() 
         : m_myA( std::shared_ptr<MyClassA>(),
             this,
-            [this](void *pChk)
+            [this](CxxlMan3::LifeOwner<MyClassA> *myA,void *pChk)
             {
                 std::lock_guard<std::mutex> lock(m_mutex);
-                if (m_myA.chkLifeRes(pChk))
-                    m_myA.destroy();
+                if (myA->chkLifeRes(pChk))
+                    myA->destroy();
             })            
     {}
 
