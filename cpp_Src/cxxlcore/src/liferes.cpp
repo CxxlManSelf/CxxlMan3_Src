@@ -131,6 +131,14 @@ namespace CXXL
         m_isDestroy = removeOwner();
     }
 
+    void cxxlFASTCALL LifeResourcePrivate::_LifeRes::detachMoveOwner(const _OwnerObserverBase *pOwner)
+    {
+        std::lock_guard<std::mutex> lock(m_LifeResMutex);
+        detach(pOwner);
+        removeOwner();
+    }
+
+
     // 叫用 detachOwner() 之後呼叫銷毁器檢查是否需要銷毀
     // lifeRes_ptr 其實就是自己，只是為了有 std::shared_ptr 包裹，會交給銷毀器
     void cxxlFASTCALL LifeResourcePrivate::_LifeRes::checkDestroy(const std::shared_ptr<_LifeRes> &lifeRes_ptr)
