@@ -1,5 +1,5 @@
 /************************************************************************************************
- * liferes.hpp v1.0.15
+ * liferes.hpp v1.0.17
  *
  * LifeRes<>    生命資源，由此延伸出來的類別可以被安全共享，可以由 LifeOwner 的持有來決定物件的生存。
  *              可分為
@@ -296,30 +296,24 @@ namespace CXXL
             return false;
         }
 
-        void setLifeObserver(const std::shared_ptr<LIFERES> &liferes_ptr,
-                             const std::function<void(LifeObserver<LIFERES> *pSender, void *pChkLifeRes)> &detachLifeResFunc)
-        {
-            m_detachLifeResFunc = detachLifeResFunc;
-            attachLifeRes(liferes_ptr);
-        }
-
     public:
         // Constructor
         template <typename HOST>
-        LifeObserver(const std::shared_ptr<LIFERES> &liferes_ptr,
-                     HOST *pHost,
+        LifeObserver(HOST *pHost,
                      const std::function<void(LifeObserver<LIFERES> *pSender, void *pChkLifeRes)> &detachLifeResFunc)
             : _OwnerObserverBase(pHost)
         {
-            setLifeObserver(liferes_ptr, detachLifeResFunc);
+            m_detachLifeResFunc = detachLifeResFunc;
         }
 
         // move constructor
-        // 但做的是 copy constructor
-        // 因為要留著做解構處理
-        LifeObserver(LifeObserver &&Other)
-          : LifeObserver(Other.m_lifeRes_ptr, Other.m_pHost, Other.m_detachLifeResFunc)
-        {}
+        LifeObserver(LifeObserver &&other)
+            : _OwnerObserverBase(std::move(other))
+        {
+            m_detachLifeResFunc = other.m_detachLifeResFunc;
+            attachLifeRes(other.m_lifeRes_ptr);
+            other.destroy();
+        }
 
         // Destructor
         virtual ~LifeObserver()
@@ -413,57 +407,30 @@ namespace CXXL
             return false;
         }
 
-        // Constructor
-        void setLifeOwner(const std::shared_ptr<LIFERES> &liferes_ptr,
-                          const std::function<void(LifeOwner<LIFERES> *pSender, void *pChkLifeRes)> &detachLifeResFunc)
-        {
-            m_detachLifeResFunc = detachLifeResFunc;
-            attachLifeRes(liferes_ptr);
-        }
-
     public:
         // Constructor
         template <typename HOST>
-        LifeOwner(const std::shared_ptr<LIFERES> &liferes_ptr,
-                  HOST *pHost,
+        LifeOwner(HOST *pHost,
                   const std::function<void(LifeOwner<LIFERES> *pSender, void *pChkLifeRes)> &detachLifeResFunc)
             : _OwnerObserverBase(pHost)
         {
-            setLifeOwner(liferes_ptr, detachLifeResFunc);
-        }
-
-        template <typename HOST>
-        const LifeResourcePrivate::_LifeRes *getHost(HOST *pHost) const 
-        { 
-            return (const LifeResourcePrivate::_LifeRes *)pHost; 
+            m_detachLifeResFunc = detachLifeResFunc;
         }
 
         // move constructor
-        LifeOwner(LifeOwner &&other) 
-          : _OwnerObserverBase( std::move(other) )
+        LifeOwner(LifeOwner &&other)
+            : _OwnerObserverBase(std::move(other))
         {
-            setLifeOwner(other.m_lifeRes_ptr, other.m_detachLifeResFunc);
+            m_detachLifeResFunc = other.m_detachLifeResFunc;
+            attachLifeRes(other.m_lifeRes_ptr);
             other.m_isMoved = true;
+            other.destroy();
         }
 
         // Destructor
         virtual ~LifeOwner()
         {
-            // 沒有被移動
-            if(!m_isMoved)
-            {
-                destroy();
-                return;
-            }
-
-            // 被移動
-            if (m_lifeRes_ptr == nullptr)
-                return;
-
-            LifeResourcePrivate::_LifeRes *pLifeRes = (LifeResourcePrivate::_LifeRes *)m_lifeRes_ptr.get();
-
-            pLifeRes->detachMoveOwner(this); // 不做銷毀
-            m_lifeRes_ptr.reset();
+            destroy();
         }
 
         // Setter
@@ -487,17 +454,30 @@ namespace CXXL
         // 銷毀
         void cxxlFASTCALL destroy()
         {
+
             if (m_lifeRes_ptr == nullptr)
-                return;
+            return;
 
-            // tmp_ptr 確保 checkDestroy() 執行後 _LifeRes 還活著
-            std::shared_ptr<LifeResourcePrivate::_LifeRes> tmp_ptr(m_lifeRes_ptr,
-                                                                   (LifeResourcePrivate::_LifeRes *)m_lifeRes_ptr.get());
+            // 檢查是否已被移動
+            if (m_isMoved)
+            {
+                LifeResourcePrivate::_LifeRes *pLifeRes = (LifeResourcePrivate::_LifeRes *)m_lifeRes_ptr.get();
 
-            m_lifeRes_ptr.reset();
+                pLifeRes->detachMoveOwner(this); // 不做銷毀
+                m_lifeRes_ptr.reset();
+            }
+            else
+            {
+                // tmp_ptr 確保 checkDestroy() 執行後 _LifeRes 還活著
+                std::shared_ptr<LifeResourcePrivate::_LifeRes> 
+                  tmp_ptr(m_lifeRes_ptr,
+                          (LifeResourcePrivate::_LifeRes *)m_lifeRes_ptr.get());
 
-            tmp_ptr->detachOwner(this);
-            tmp_ptr->checkDestroy(tmp_ptr);
+                m_lifeRes_ptr.reset();
+
+                tmp_ptr->detachOwner(this);
+                tmp_ptr->checkDestroy(tmp_ptr);
+            }
         }
 
         // 給使用端檢查 pChkLifeRes 是不是和持有的 LifeRes 相匹配
