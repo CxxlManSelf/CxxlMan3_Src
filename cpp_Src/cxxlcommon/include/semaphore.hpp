@@ -1,5 +1,5 @@
 /************************************************************************************************
- * semaphore.hpp v1.0.4
+ * semaphore.hpp v1.0.5
  *
  * 提供一個 semaphore 功能，這個 semaphore 可以設定遇到進入 block 狀態
  * 前，會先呼叫由使用端提供的回叫函數
@@ -55,8 +55,15 @@ namespace CXXL
         {
             std::unique_lock<std::mutex> lock(m_semaphore_mutex);
             m_condition.wait(lock,
-                             [&]() -> bool
-                             { return (m_numThread > 0) ? true : (blockEvent(), false); });
+                [&]() -> bool
+                {
+                    if (m_numThread > 0)
+                    {
+                        return true;
+                    }
+                    blockEvent();
+                    return false;
+                });
             --m_numThread;
         }
 

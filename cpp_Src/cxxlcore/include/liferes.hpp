@@ -1,5 +1,5 @@
 /************************************************************************************************
- * liferes.hpp v1.0.17
+ * liferes.hpp v1.0.19
  *
  * LifeRes<>    生命資源，由此延伸出來的類別可以被安全共享，可以由 LifeOwner 的持有來決定物件的生存。
  *              可分為
@@ -209,7 +209,9 @@ namespace CXXL
             }
 
             // move constructor
-            _OwnerObserverBase(_OwnerObserverBase &&Other) : m_pHost(Other.m_pHost) {}
+            _OwnerObserverBase(_OwnerObserverBase &&Other) noexcept
+                : m_pHost(Other.m_pHost) 
+            {}
 
         public:
             // Destructor
@@ -333,10 +335,7 @@ namespace CXXL
         // Getter
         std::shared_ptr<LIFERES> cxxlFASTCALL getLifeRes() const
         {
-            if (m_lifeRes_ptr != nullptr && m_lifeRes_ptr->isDestroy() == false)
-                return m_lifeRes_ptr;
-
-            return nullptr;
+            return m_lifeRes_ptr;
         }
 
         // 銷毀
@@ -357,7 +356,7 @@ namespace CXXL
                 return false;
 
             const LifeResourcePrivate::_LifeRes *p = (const LifeResourcePrivate::_LifeRes *)m_lifeRes_ptr.get();
-            void *pLifeRes = (void *)((RmConst<decltype(p)>::type)p);
+            void *pLifeRes = const_cast<void*>(static_cast<const void*>(p));
 
             return pLifeRes == pChkLifeRes;
         }
@@ -445,10 +444,7 @@ namespace CXXL
         // Getter
         std::shared_ptr<LIFERES> cxxlFASTCALL getLifeRes() const
         {
-            if (m_lifeRes_ptr != nullptr && m_lifeRes_ptr->isDestroy() == false)
-                return m_lifeRes_ptr;
-
-            return nullptr;
+            return m_lifeRes_ptr;
         }
 
         // 銷毀
@@ -487,7 +483,7 @@ namespace CXXL
                 return false;
 
             const LifeResourcePrivate::_LifeRes *p = (const LifeResourcePrivate::_LifeRes *)m_lifeRes_ptr.get();
-            void *pLifeRes = (void *)((RmConst<decltype(p)>::type)p);
+            void *pLifeRes = const_cast<void*>(static_cast<const void*>(p));
 
             return pLifeRes == pChkLifeRes;
         }
