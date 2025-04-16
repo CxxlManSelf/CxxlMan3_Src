@@ -4,19 +4,19 @@
 #include <mutex>
 
 #include <threadmgr.hpp>
-#include <liferesdestructor.hpp>
+#include <unibasedestructor.hpp>
 
 namespace CXXL
 {
 
-    // 用於等待銷毀器的待銷毀清單清空
+    // 用於等待放棄共用器的待放棄共用清單清空
 	cxxlSemaphore g_waitDestructorEmptied;
 
 
-    // 銷毀處理器
-    class LifeResDestructor
+    // 放棄共用處理器
+    class UniBaseDestructor
     {
-        // 建立一個獨立的執行緒，專門處理銷毀
+        // 建立一個獨立的執行緒，專門處理放棄共用
 		// ThreadPool m_threadPool{1}; // main() 結束時會先砍掉所有子執行緒，所以用這個不行
 
         std::mutex m_mutex;
@@ -24,19 +24,19 @@ namespace CXXL
 		bool m_isOver = false; // 是否結束執行緒的標識
 		// std::optional<std::future<void>> m_future; // 執行緒的回傳值，等待執行緒結束
 
-        // 待銷毀清單
+        // 待放棄共用清單
         std::list<std::shared_ptr<IDestroyable> > m_list;
 
-        // threadProc 的等待通知管制，待銷毀清單沒有放入的時候
-        // 會等待，待銷毀清單有放入的時候會得到通知才運行
+        // threadProc 的等待通知管制，待放棄共用清單沒有物件的時候
+        // 會等待，待放棄共用清單有放入物件的時候會得到通知才運行
         cxxlSemaphore m_gate;
 
-        // 建立一個容器來儲存被銷毀處理器巡行過的 LifeRes，以便巡行後將 fFlag 清除。
+        // 建立一個容器來儲存被放棄共用處理器巡行過的 UniBase，以便巡行後將 fFlag 清除。
         // 要能快速循序取出和剔除
-        std::list<IDestroyable *> m_LifeResSet_fFlag;
+        std::list<IDestroyable *> m_UniBaseSet_fFlag;
 
 
-        // 銷毀處理器所用的執行緒
+        // 放棄共用處理器所用的執行緒
         void cxxlFASTCALL threadProc()
         {
             while (!m_isOver)
@@ -46,7 +46,7 @@ namespace CXXL
 
                 while (true)
                 {
-                    // 用於取得待銷毀物件
+                    // 用於取得待放棄共用物件
                     std::shared_ptr<IDestroyable> destroyable_ptr;
                     
                     {
@@ -64,10 +64,10 @@ namespace CXXL
                     if (destroyable_ptr->LD_shouldDestroy())
                         destroyable_ptr->LD_destroy();
 
-                    for(auto it:m_LifeResSet_fFlag)
+                    for(auto it:m_UniBaseSet_fFlag)
                         it->LD_clearFlag();
 
-                    m_LifeResSet_fFlag.clear();
+                    m_UniBaseSet_fFlag.clear();
                 }
             }
             g_waitDestructorEmptied.release();
@@ -76,21 +76,21 @@ namespace CXXL
     public:
 
         // Constructor
-        LifeResDestructor()
+        UniBaseDestructor()
         {
-            // m_future = m_threadPool(std::bind(&LifeResDestructor::threadProc, this));
+            // m_future = m_threadPool(std::bind(&UniBaseDestructor::threadProc, this));
             std::thread([this]
                 { this->threadProc(); }).detach();
         }
 
         // Destructor
-        ~LifeResDestructor()
+        ~UniBaseDestructor()
         {
             //stop();
             //g_waitDestructorEmptied.wait();
         }
 
-        // 放入待銷毀物件
+        // 放入待放棄共用物件
         void cxxlFASTCALL add(const std::shared_ptr<IDestroyable> &destroyable_ptr)
         {
             // g_waitDestructorEmptied.zero();
@@ -101,7 +101,7 @@ namespace CXXL
 
         void cxxlFASTCALL reset_fFlag(const IDestroyable *pDestroyable)
         {
-            m_LifeResSet_fFlag.push_back(const_cast<IDestroyable *>(pDestroyable));
+            m_UniBaseSet_fFlag.push_back(const_cast<IDestroyable *>(pDestroyable));
         }
 
         // 由使用端呼叫結束執行緒
@@ -113,7 +113,7 @@ namespace CXXL
 
     } g_Destructor;
 
-    class CLifeResDestructor : public ILifeResDestructor
+    class CUniBaseDestructor : public IUniBaseDestructor
     {
         virtual void cxxlFASTCALL reset_fFlag(const IDestroyable *pDestroyable) override
         {
@@ -121,15 +121,15 @@ namespace CXXL
         }
 
         void cxxlFASTCALL checkDestroy(const std::shared_ptr<IDestroyable> &destroyable_ptr)
-            override // class ILifeResDestructor
+            override // class IUniBaseDestructor
         {
             g_Destructor.add(destroyable_ptr);
         }
 
     public:
-    } g_LifeResDestructor;
+    } g_UniBaseDestructor;
 
-    ILifeResDestructor *g_pLifeResDestructor = &g_LifeResDestructor;
+    IUniBaseDestructor *g_pUniBaseDestructor = &g_UniBaseDestructor;
 
     class DestrWaiter:public IDestrWaiter
     {

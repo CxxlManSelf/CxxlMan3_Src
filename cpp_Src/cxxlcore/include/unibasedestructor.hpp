@@ -1,16 +1,16 @@
 /************************************************************************************************
- * liferesdestructor.hpp v1.0.2
+ * uniresdestructor.hpp v1.0.3
  *
- * 提供銷毀 LifeRes 功能的介面
+ * 提供結束共用 UniBase 功能的介面
  * 
- * 銷毀處理器是獨立的單一執行緒機制，確保同一個時間只會有一個 LifeRes 進行銷毀的處理
+ * 結束共用處理器是獨立的單一執行緒機制，確保同一個時間只會有一個 UniBase 被進行結束共用的處理
  *
  * Author: CxxlMan
  * Date: 2025 -
  ************************************************************************************************/
 
-#ifndef __CXXLCORE_LIFERESDESTRUCTOR_HPP_CxxlMan3
-#define __CXXLCORE_LIFERESDESTRUCTOR_HPP_CxxlMan3
+#ifndef __CXXLCORE_UNIBASEDESTRUCTOR_HPP_CxxlMan3
+#define __CXXLCORE_UNIBASEDESTRUCTOR_HPP_CxxlMan3
 
 #include <memory>
 
@@ -22,44 +22,44 @@
 namespace CXXL
 {
 
-    class _LifeRes;
+    class _UniBase;
 
-    // 要被銷毀的 LifeRes 的界面，作為要被銷毀處理器銷毀的作用對象
+    // 作為要被結束共用處理器的作用介面
     class CXXLCORE_DLLEXPORT IDestroyable
     {
     public:
         virtual ~IDestroyable() = default;
 
-        // 虛擬函數，詢問此物件是否應當被銷毀
+        // 虛擬函數，詢問此物件是否應當被結束共用
         virtual bool cxxlFASTCALL LD_shouldDestroy() = 0;        
 
-        // 當物件須要銷毀時將調用此方法
+        // 當物件須要結束共用時將調用此方法
         virtual void cxxlFASTCALL LD_destroy() = 0;
 
         // 將 fFlag 清為 false
         virtual void cxxlFASTCALL LD_clearFlag() = 0;
     };
 
-    // LifeRes<> 的銷毀處理器的使用界面
-    class ILifeResDestructor
+    // 結束共用處理器的使用界面
+    class IUniBaseDestructor
     {
     public:
-        virtual ~ILifeResDestructor() = default;
+        virtual ~IUniBaseDestructor() = default;
 
-        // 進行 destroyable_ptr 物件銷毀檢測
-        // 若標記為銷毀則進行銷毀
-        // 否則進行存活持有者搜尋，若找不到也會進行銷毀
+        // 進行 destroyable_ptr 物件檢測
+        // 若標記為結束共用則進行結束共用
+        // 否則進行 root 持有者搜尋，若找不到也會進行結束共用
         virtual void cxxlFASTCALL checkDestroy(const std::shared_ptr<IDestroyable> &destroyable_ptr) = 0;
 
-        // 被銷毀處理器巡行過的 LifeRes 被設定 fFlag，須叫用此函數記錄以便巡行後將 fFlag 清除
+        // 被結束共用處理器巡行過的 UniBase 被設定 fFlag，須叫用此函數記錄以便巡行後將 fFlag 清除
         virtual void cxxlFASTCALL reset_fFlag(const IDestroyable *pDestroyable) = 0;
     };
 
-    // 定義在外部的 ILifeResDestructor 的實例指標
-    extern CXXLCORE_DLLEXPORT ILifeResDestructor *g_pLifeResDestructor;
+    // 定義在外部的 IUniBaseDestructor 的實例指標
+    extern CXXLCORE_DLLEXPORT IUniBaseDestructor *g_pUniBaseDestructor;
 
 
-    // 等待銷毀處理器的 待銷毀清單 清空，以及結束子執行緒
+    // 等待結束共用處理器的 待結束共用清單 清空，以及結束子執行緒
     class IDestrWaiter
     {
     public:

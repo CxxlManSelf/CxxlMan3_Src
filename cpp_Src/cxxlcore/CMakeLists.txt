@@ -8,7 +8,9 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/version.rc.in
                        ${CMAKE_CURRENT_BINARY_DIR}/version.rc 
                       @ONLY)
 
-set(SRC_LIST "src/life_res_destructor.cpp" "src/liferes.cpp")
+
+aux_source_directory(src SRC_LIST)
+
 
 #set(LIBSRC_LIST cxxlcommon)
 if(UNIX)
