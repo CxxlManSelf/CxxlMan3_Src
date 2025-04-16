@@ -97,7 +97,7 @@ public:
 int main(int, char**)
 {
     {
-        std::shared_ptr<ICore> core_ptr = getDestructor();
+        std::shared_ptr<IDestrWaiter> destrWaiter_ptr = getDestructor();
         std::cout << "已經取得核心銷毁控制器\n";
         std::cout << "按 <enter> 鍵繼續\n"; std::cin.get();
     
