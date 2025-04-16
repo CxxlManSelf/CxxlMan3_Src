@@ -131,29 +131,29 @@ namespace CXXL
 
     ILifeResDestructor *g_pLifeResDestructor = &g_LifeResDestructor;
 
-    class Core:public ICore
+    class DestrWaiter:public IDestrWaiter
     {
     public:
-        virtual ~Core() 
+        virtual ~DestrWaiter()
         {
             g_Destructor.stop();
             g_waitDestructorEmptied.wait();
         }
     };
 
-    std::shared_ptr<ICore> cxxlFASTCALL getDestructor()
+    std::shared_ptr<IDestrWaiter> cxxlFASTCALL getDestructor()
     {
-        static bool fCore = false;
+        static bool f = false;
 
-        if (fCore)
+        if (f)
         {
             // 只能取得一次
             return nullptr;
         }
 
-        fCore = true;
+        f = true;
 
-        return std::shared_ptr<ICore>(new Core());
+        return std::shared_ptr<IDestrWaiter>(new DestrWaiter());
     }
 
 }
