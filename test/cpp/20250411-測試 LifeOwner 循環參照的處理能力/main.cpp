@@ -1,25 +1,25 @@
 #include <iostream>
 
-#include <liferes.hpp>
+#include <unibase.hpp>
 
 using namespace CxxlMan3;
 
 class MyClassB;
 
-class MyClassA : public LifeRes<LifeResType::ALL> 
+class MyClassA : public UniBase<UniBaseType::ALL> 
 {
 
     std::mutex m_mutex;
-    LifeOwner<MyClassB> m_myB;
+    UniOwner<MyClassB> m_myB;
 
 public:    
     // Constructor
     MyClassA() 
         : m_myB(this,
-            [this](CxxlMan3::LifeOwner<MyClassB> *myB, void *pChk)
+            [this](CxxlMan3::UniOwner<MyClassB> *myB, void *pChk)
             {
                 std::lock_guard<std::mutex> lock(m_mutex);
-                if (myB->chkLifeRes(pChk))
+                if (myB->chkUniBase(pChk))
                     myB->destroy();
             })
     {}
@@ -32,24 +32,24 @@ public:
 
     void cxxlFASTCALL addMyB(const std::shared_ptr<MyClassB> &myB_ptr)
     {
-        m_myB.setLifeRes(myB_ptr);
+        m_myB.setUniBase(myB_ptr);
     }
 };
 
-class MyClassB : public LifeRes<LifeResType::ALL> 
+class MyClassB : public UniBase<UniBaseType::ALL> 
 {
 public:    
     std::mutex m_mutex;
-    LifeOwner<MyClassA> m_myA;
+    UniOwner<MyClassA> m_myA;
 
 public:
     // Constructor
     MyClassB() 
         : m_myA(this,
-            [this](CxxlMan3::LifeOwner<MyClassA> *myA,void *pChk)
+            [this](CxxlMan3::UniOwner<MyClassA> *myA,void *pChk)
             {
                 std::lock_guard<std::mutex> lock(m_mutex);
-                if (myA->chkLifeRes(pChk))
+                if (myA->chkUniBase(pChk))
                     myA->destroy();
             })
     {}
@@ -62,22 +62,22 @@ public:
     
     void cxxlFASTCALL addMyA(const std::shared_ptr<MyClassA> &myA_ptr)
     {
-        m_myA.setLifeRes(myA_ptr);        
+        m_myA.setUniBase(myA_ptr);        
     }
 };
 
-class MyRoot : public LifeRes<LifeResType::ONE>
+class MyRoot : public UniBase<UniBaseType::ONE>
 {
     std::mutex m_mutex;
-    LifeOwner<MyClassA> m_myA;
+    UniOwner<MyClassA> m_myA;
 public:
     // Constructor
     MyRoot() 
         : m_myA(this,
-            [this](CxxlMan3::LifeOwner<MyClassA> *myA,void *pChk)
+            [this](CxxlMan3::UniOwner<MyClassA> *myA,void *pChk)
             {
                 std::lock_guard<std::mutex> lock(m_mutex);
-                if (myA->chkLifeRes(pChk))
+                if (myA->chkUniBase(pChk))
                     myA->destroy();
             })            
     {}
@@ -90,7 +90,7 @@ public:
 
     void cxxlFASTCALL addMyA(const std::shared_ptr<MyClassA> &myA_ptr)
     {
-        m_myA.setLifeRes(myA_ptr);        
+        m_myA.setUniBase(myA_ptr);        
     }
 };
 
