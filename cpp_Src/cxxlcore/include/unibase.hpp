@@ -25,6 +25,7 @@
 
 #include "rmconst.hpp"
 #include "unibasedestructor.hpp"
+// #include "uniptr.hpp"
 
 namespace CXXL
 {
@@ -46,6 +47,9 @@ namespace CXXL
     template <typename UNIBASE>
     class UniOwner;
 
+    template <typename T>
+    class UniPtr;
+
     // 在此宣告一些 private 類別
     class UniResourcePrivate
     {
@@ -64,6 +68,7 @@ namespace CXXL
                     bool ldFlag : 1;      // 結束共用處理器已判定須結束共用為 true
                     bool m_isDestroy : 1; // 用來標記 _UniBase 物件是不是要結束共用了，被標記的物件不能再
                                           // 被 _Holder 持有
+                    bool onlyAddFlag : 1; // 已放入 only add 佇列為 true，否則為 false
                 };
                 uint8_t allFlags = 0; // 用於快速清為 0
             };
@@ -75,7 +80,9 @@ namespace CXXL
 
             virtual void cxxlFASTCALL LD_destroy() override final; // class IDestroyable
 
-            virtual void cxxlFASTCALL LD_clearFlag() override final; // class IDestroyable
+            virtual void cxxlFASTCALL LD_clearFFlag() override final; // class IDestroyable
+
+            virtual void cxxlFASTCALL LD_clearOnlyAddFlag() override final; // class IDestroyable
 
             mutable std::mutex m_UniBaseMutex;
 
@@ -113,6 +120,10 @@ namespace CXXL
             // UniBase_ptr 其實就是自己，只是為了有 std::shared_ptr 包裹，會交給結束共用處理器
             void cxxlFASTCALL checkDestroy(const std::shared_ptr<_UniBase> &uniBase_ptr);
 
+            // 只是放入待放棄佇列
+            // UniBase_ptr 其實就是自己，只是為了有 std::shared_ptr 包裹，會交給結束共用處理器
+            void cxxlFASTCALL onlyAdd(const std::shared_ptr<_UniBase> &uniBase_ptr);
+
         public:
             // Constructor
             _UniBase();
@@ -128,6 +139,10 @@ namespace CXXL
 
             template <typename UNIBASE>
             friend class UniOwner;
+
+            template <typename T>
+            friend class UniPtr;
+    
         };
 
         // 所有 UniOwner 放棄持有才會被結束共用
@@ -204,15 +219,19 @@ namespace CXXL
             const _UniBase *const m_pHost;
 
         protected:
+            bool m_isMoved = false; // 標記是否已被移動
+
             // Constructor
             _Holder(const _UniBase *pHost) : m_pHost(pHost)
             {
             }
 
             // move constructor
-            _Holder(_Holder &&Other) noexcept
-                : m_pHost(Other.m_pHost) 
-            {}
+            _Holder(_Holder &&other) noexcept
+                : m_pHost(other.m_pHost)
+            {
+                other.m_isMoved = true;
+            }
 
         public:
             // Destructor
@@ -232,6 +251,10 @@ namespace CXXL
 
         template <UniBaseType T>
         friend class UniBase;
+
+        template <typename T>
+        friend class UniPtr;
+    
     };
 
     /*****************************************************************************/
@@ -303,7 +326,7 @@ namespace CXXL
         // Constructor
         template <typename HOST>
         UniObserver(HOST *pHost,
-                     const std::function<void(UniObserver<UNIBASE> *pSender, void *pChkUniBase)> &detachUniBaseFunc)
+                    const std::function<void(UniObserver<UNIBASE> *pSender, void *pChkUniBase)> &detachUniBaseFunc)
             : _Holder(pHost)
         {
             m_detachUniBaseFunc = detachUniBaseFunc;
@@ -327,27 +350,44 @@ namespace CXXL
         // Setter
         // 若成功被加入則回傳 true
         // 若 uniBase_ptr 被標示為結束共用狀態則不會被加入，改設定為 nullptr，且回傳 false
-        bool cxxlFASTCALL setUniBase(const std::shared_ptr<UNIBASE> &uniBase_ptr)
+        bool cxxlFASTCALL setUniBase(const UniPtr<UNIBASE> &uniBase_ptr)
         {
             destroy();
-            return attachUniBase(uniBase_ptr);
+            return attachUniBase(uniBase_ptr.getUniBase());
         }
 
         // Getter
-        std::shared_ptr<UNIBASE> cxxlFASTCALL getUniBase() const
+        UniPtr<UNIBASE> cxxlFASTCALL getUniBase() const
         {
-            return m_uniBase_ptr;
+            return UniPtr<UNIBASE>(m_uniBase_ptr);
         }
 
-        // 結束共用
+        // 結束持有
         void cxxlFASTCALL destroy()
         {
             if (m_uniBase_ptr == nullptr)
                 return;
 
-            auto pUniBase = (UniResourcePrivate::_UniBase *)m_uniBase_ptr.get();
-            pUniBase->detachObserver(this);
-            m_uniBase_ptr.reset();
+            if (m_isMoved)
+            {
+                UniResourcePrivate::_UniBase *pUniBase =
+                    (UniResourcePrivate::_UniBase *)m_uniBase_ptr.get();
+
+                pUniBase->detachObserver(this);
+                m_uniBase_ptr.reset();
+            }
+            else
+            {
+                // tmp_ptr 確保 checkDestroy() 執行後 _UniBase 還活著
+                std::shared_ptr<UniResourcePrivate::_UniBase>
+                    tmp_ptr(m_uniBase_ptr,
+                            (UniResourcePrivate::_UniBase *)m_uniBase_ptr.get());
+
+                m_uniBase_ptr.reset();
+
+                tmp_ptr->detachObserver(this);
+                tmp_ptr->checkDestroy(tmp_ptr);
+            }
         }
 
         // 給使用端檢查 pChkUniBase 是不是和持有的 UniBase 相匹配
@@ -357,7 +397,7 @@ namespace CXXL
                 return false;
 
             const UniResourcePrivate::_UniBase *p = (const UniResourcePrivate::_UniBase *)m_uniBase_ptr.get();
-            void *pUniBase = const_cast<void*>(static_cast<const void*>(p));
+            void *pUniBase = const_cast<void *>(static_cast<const void *>(p));
 
             return pUniBase == pChkUniBase;
         }
@@ -381,8 +421,6 @@ namespace CXXL
 
         // 要持有的 UniBase
         mutable std::shared_ptr<UNIBASE> m_uniBase_ptr;
-
-        bool m_isMoved = false; // 標記是否已被移動
 
         // 給 _UniBase::destroy() 使用，pChkUniBase 作為要檢查的 _UniBase
         virtual void cxxlFASTCALL detachUniBase(const UniResourcePrivate::_UniBase *pChkUniBase)
@@ -411,7 +449,7 @@ namespace CXXL
         // Constructor
         template <typename HOST>
         UniOwner(HOST *pHost,
-                  const std::function<void(UniOwner<UNIBASE> *pSender, void *pChkUniBase)> &detachUniBaseFunc)
+                 const std::function<void(UniOwner<UNIBASE> *pSender, void *pChkUniBase)> &detachUniBaseFunc)
             : _Holder(pHost)
         {
             m_detachUniBaseFunc = detachUniBaseFunc;
@@ -423,7 +461,6 @@ namespace CXXL
         {
             m_detachUniBaseFunc = other.m_detachUniBaseFunc;
             attachUniBase(other.m_uniBase_ptr);
-            other.m_isMoved = true;
             other.destroy();
         }
 
@@ -436,39 +473,40 @@ namespace CXXL
         // Setter
         // 若成功被加入則回傳 true
         // 若 uniBase_ptr 被標示為結束共用狀態則不會被加入，改設定為 nullptr，且回傳 false
-        bool cxxlFASTCALL setUniBase(const std::shared_ptr<UNIBASE> &uniBase_ptr)
+        bool cxxlFASTCALL setUniBase(const UniPtr<UNIBASE> &uniBase_ptr)
         {
             destroy();
-            return attachUniBase(uniBase_ptr);
+            return attachUniBase(uniBase_ptr.getUniBase());
         }
 
         // Getter
-        std::shared_ptr<UNIBASE> cxxlFASTCALL getUniBase() const
+        UniPtr<UNIBASE> cxxlFASTCALL getUniBase() const
         {
-            return m_uniBase_ptr;
+            return UniPtr<UNIBASE>(m_uniBase_ptr);
         }
 
-        // 結束共用
+        // 結束持有
         void cxxlFASTCALL destroy()
         {
 
             if (m_uniBase_ptr == nullptr)
-            return;
+                return;
 
             // 檢查是否已被移動
             if (m_isMoved)
             {
-                UniResourcePrivate::_UniBase *pUniBase = (UniResourcePrivate::_UniBase *)m_uniBase_ptr.get();
+                UniResourcePrivate::_UniBase *pUniBase =
+                    (UniResourcePrivate::_UniBase *)m_uniBase_ptr.get();
 
-                pUniBase->detachMoveOwner(this); // 不做結束共用
+                pUniBase->detachMoveOwner(this); // 不做結束持有
                 m_uniBase_ptr.reset();
             }
             else
             {
                 // tmp_ptr 確保 checkDestroy() 執行後 _UniBase 還活著
-                std::shared_ptr<UniResourcePrivate::_UniBase> 
-                  tmp_ptr(m_uniBase_ptr,
-                          (UniResourcePrivate::_UniBase *)m_uniBase_ptr.get());
+                std::shared_ptr<UniResourcePrivate::_UniBase>
+                    tmp_ptr(m_uniBase_ptr,
+                            (UniResourcePrivate::_UniBase *)m_uniBase_ptr.get());
 
                 m_uniBase_ptr.reset();
 
@@ -484,7 +522,7 @@ namespace CXXL
                 return false;
 
             const UniResourcePrivate::_UniBase *p = (const UniResourcePrivate::_UniBase *)m_uniBase_ptr.get();
-            void *pUniBase = const_cast<void*>(static_cast<const void*>(p));
+            void *pUniBase = const_cast<void *>(static_cast<const void *>(p));
 
             return pUniBase == pChkUniBase;
         }

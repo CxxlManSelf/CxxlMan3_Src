@@ -56,7 +56,7 @@ namespace CXXL
         }
 
         cFlag = false; // 可再被放入待放棄共用的佇列
-        fFlag = false;
+        fFlag = false;        
 
         return ldFlag = fNoRootUniBase;
     }
@@ -80,10 +80,17 @@ namespace CXXL
         m_UniBaseMutex.unlock();
     }
 
-    void cxxlFASTCALL UniResourcePrivate::_UniBase::LD_clearFlag()
+    void cxxlFASTCALL UniResourcePrivate::_UniBase::LD_clearFFlag()
     {
         fFlag = false;
     }
+
+    void cxxlFASTCALL UniResourcePrivate::_UniBase::LD_clearOnlyAddFlag()
+    {
+        std::lock_guard<std::mutex> lock(m_UniBaseMutex);
+        onlyAddFlag = false;
+    }
+
 
     /****************************************************************************************** */
 
@@ -143,6 +150,8 @@ namespace CXXL
     // UniBase_ptr 其實就是自己，只是為了有 std::shared_ptr 包裹，會交給放棄共用處理器
     void cxxlFASTCALL UniResourcePrivate::_UniBase::checkDestroy(const std::shared_ptr<_UniBase> &uniBase_ptr)
     {
+        bool F;
+
         {
             std::lock_guard<std::mutex> lock(m_UniBaseMutex);
 
@@ -150,14 +159,35 @@ namespace CXXL
             if (cFlag)
                 return;
 
-            // 前次檢查放棄共用處理器已判定須放棄共用
-            if (ldFlag)
-                return;
-
-            cFlag = true; // 標記已放入放棄共用佇列
+            if(F = ldFlag) // 前次檢查放棄共用處理器已判定須放棄共用
+                onlyAddFlag = true;
+            else
+                cFlag = true; // 標記已放入放棄共用佇列
         }
 
-        g_pUniBaseDestructor->checkDestroy(std::static_pointer_cast<IDestroyable>(uniBase_ptr));
+        // 前次檢查已判定放棄共用
+        if (F)
+            g_pUniBaseDestructor->onlyAdd(std::static_pointer_cast<IDestroyable>(uniBase_ptr));
+        else
+            g_pUniBaseDestructor->checkDestroy(std::static_pointer_cast<IDestroyable>(uniBase_ptr));
+    }
+
+    void cxxlFASTCALL UniResourcePrivate::_UniBase::onlyAdd(const std::shared_ptr<_UniBase> &uniBase_ptr)
+    {
+        {
+            std::lock_guard<std::mutex> lock(m_UniBaseMutex);
+
+            // 已放入待放棄共用佇列的物件不用再次放入
+            if (cFlag)
+                return;
+
+            if(onlyAddFlag) // 已放入 only add 佇列
+                return;
+
+            onlyAddFlag = true;
+        } 
+
+        g_pUniBaseDestructor->onlyAdd(std::static_pointer_cast<IDestroyable>(uniBase_ptr));
     }
 
     // Constructor
