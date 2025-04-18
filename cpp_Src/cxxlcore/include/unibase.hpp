@@ -1,7 +1,7 @@
 /************************************************************************************************
- * unibase.hpp v1.1.21
+ * unibase.hpp v1.1.22
  *
- * UniBase<>    統一基礎，由此延伸出來的類別可以被安全共享，可以由 UniOwner 的持有來決定物件的是否
+ * UniBase<>    統一基底，由此延伸出來的類別可以被安全共享，可以由 UniOwner 的持有來決定物件的是否
  *              結束共用。可分為
  *              UniBase<ALL> 須所有 UniOwner 放棄持有才會被結束共用
  *              UniBase<ONE> 只要有一個 UniOwner 放棄持有就會被結束共用
@@ -49,7 +49,7 @@ namespace CXXL
     // 在此宣告一些 private 類別
     class UniResourcePrivate
     {
-        class _OwnerObserverBase;
+        class _Holder;
 
         // UniBase<> 的基礎類別
         class CXXLCORE_DLLEXPORT _UniBase : public IDestroyable
@@ -60,10 +60,10 @@ namespace CXXL
                 {
                     bool cFlag : 1;       // 已放入待刪佇列為 true，否則為 false
                     bool fFlag : 1;       // 結束共用處理器已搜尋過為 true，否則為 false
-                    bool rFlag : 1;       // 本身是 rootUniBase,或未放入過 _OwnerObserverBase 為 false，否則為 true
+                    bool rFlag : 1;       // 本身是 rootUniBase,即未放入過 _Holder 為 false，否則為 true
                     bool ldFlag : 1;      // 結束共用處理器已判定須結束共用為 true
                     bool m_isDestroy : 1; // 用來標記 _UniBase 物件是不是要結束共用了，被標記的物件不能再
-                                          // 被 _OwnerObserverBase 持有
+                                          // 被 _Holder 持有
                 };
                 uint8_t allFlags = 0; // 用於快速清為 0
             };
@@ -79,9 +79,9 @@ namespace CXXL
 
             mutable std::mutex m_UniBaseMutex;
 
-            // 持有此物件的 _OwnerObserverBase 集合
-            std::unordered_set<const _OwnerObserverBase *>
-                m_OwnerObserverSet;
+            // 持有此物件的 _Holder 集合
+            std::unordered_set<const _Holder *>
+                m_holderSet;
 
             // 虛擬函數，用來通知延伸類別增加了一個 UniOwner 持有者
             virtual void cxxlFASTCALL addOwner() = 0;
@@ -90,9 +90,9 @@ namespace CXXL
             // 返回值為 true 表示此物件須要被標記為結束共用
             virtual bool cxxlFASTCALL removeOwner() = 0;
 
-            bool cxxlFASTCALL attach(const _OwnerObserverBase *pOwnerObserver);
+            bool cxxlFASTCALL attach(const _Holder *pHolder);
 
-            void cxxlFASTCALL detach(const _OwnerObserverBase *pOwnerObserver);
+            void cxxlFASTCALL detach(const _Holder *pHolder);
 
         protected:
 #ifndef NDEBUG
@@ -100,14 +100,14 @@ namespace CXXL
             bool chkUniAll = false, chkUniOne = false;
 #endif
 
-            bool cxxlFASTCALL attachObserver(const _OwnerObserverBase *pObserver);
+            bool cxxlFASTCALL attachObserver(const _Holder *pObserver);
 
-            void cxxlFASTCALL detachObserver(const _OwnerObserverBase *pObserver);
+            void cxxlFASTCALL detachObserver(const _Holder *pObserver);
 
-            bool cxxlFASTCALL attachOwner(const _OwnerObserverBase *pOwner);
+            bool cxxlFASTCALL attachOwner(const _Holder *pOwner);
 
-            void cxxlFASTCALL detachOwner(const _OwnerObserverBase *pOwner);
-            void cxxlFASTCALL detachMoveOwner(const _OwnerObserverBase *pOwner); // 不做銷毁標記
+            void cxxlFASTCALL detachOwner(const _Holder *pOwner);
+            void cxxlFASTCALL detachMoveOwner(const _Holder *pOwner); // 不做銷毁標記
 
             // 叫用 detachOwner() 之後呼叫銷毁器檢查是否需要結束共用
             // UniBase_ptr 其實就是自己，只是為了有 std::shared_ptr 包裹，會交給結束共用處理器
@@ -198,25 +198,25 @@ namespace CXXL
 
         // UniOwner 和 UniObserver 的基礎類別
         // 作為 m_pHost 和 m_uniBase_ptr 的連結
-        class _OwnerObserverBase
+        class _Holder
         {
             // 持有 m_uniBase_ptr 的 _UniBase
             const _UniBase *const m_pHost;
 
         protected:
             // Constructor
-            _OwnerObserverBase(const _UniBase *pHost) : m_pHost(pHost)
+            _Holder(const _UniBase *pHost) : m_pHost(pHost)
             {
             }
 
             // move constructor
-            _OwnerObserverBase(_OwnerObserverBase &&Other) noexcept
+            _Holder(_Holder &&Other) noexcept
                 : m_pHost(Other.m_pHost) 
             {}
 
         public:
             // Destructor
-            virtual ~_OwnerObserverBase() {}
+            virtual ~_Holder() {}
 
             // 給 _UniBase::destroy() 使用，pChkUniBase 作為要檢查的 _UniBase
             virtual void cxxlFASTCALL detachUniBase(const _UniBase *pChkUniBase) const = 0;
@@ -266,9 +266,9 @@ namespace CXXL
     ** UniBase<> 要被結束共用會獲得通知
     */
     template <typename UNIBASE>
-    class UniObserver : UniResourcePrivate::_OwnerObserverBase
+    class UniObserver : UniResourcePrivate::_Holder
     {
-        // 使用端要做好 _OwnerObserverBase 的同步控制，以及放棄持有 _UniBase。
+        // 使用端要做好 _Holder 的同步控制，以及放棄持有 _UniBase。
         // pChkUniBase 作為要檢查的 _UniBase，判斷持有的 _UniBase 是否和要被放棄的 pChkUniBase 相同
         // pSender 發出通知的 UniObserver
         std::function<void(UniObserver<UNIBASE> *pSender, void *pChkUniBase)> m_detachUniBaseFunc;
@@ -304,14 +304,14 @@ namespace CXXL
         template <typename HOST>
         UniObserver(HOST *pHost,
                      const std::function<void(UniObserver<UNIBASE> *pSender, void *pChkUniBase)> &detachUniBaseFunc)
-            : _OwnerObserverBase(pHost)
+            : _Holder(pHost)
         {
             m_detachUniBaseFunc = detachUniBaseFunc;
         }
 
         // move constructor
         UniObserver(UniObserver &&other)
-            : _OwnerObserverBase(std::move(other))
+            : _Holder(std::move(other))
         {
             m_detachUniBaseFunc = other.m_detachUniBaseFunc;
             attachUniBase(other.m_uniBase_ptr);
@@ -372,9 +372,9 @@ namespace CXXL
     ** UniBase<> 要被結束共用會獲得通知
     */
     template <typename UNIBASE>
-    class UniOwner : UniResourcePrivate::_OwnerObserverBase
+    class UniOwner : UniResourcePrivate::_Holder
     {
-        // 使用端要做好 _OwnerObserverBase 的同步控制，以及放棄持有 _UniBase。
+        // 使用端要做好 _Holder 的同步控制，以及放棄持有 _UniBase。
         // pChkUniBase 作為要檢查的 _UniBase，判斷持有的 _UniBase 是否和要被放棄的 pChkUniBase 相同
         // pSender 發出通知的 UniOwner
         std::function<void(UniOwner<UNIBASE> *pSender, void *pChkUniBase)> m_detachUniBaseFunc;
@@ -412,14 +412,14 @@ namespace CXXL
         template <typename HOST>
         UniOwner(HOST *pHost,
                   const std::function<void(UniOwner<UNIBASE> *pSender, void *pChkUniBase)> &detachUniBaseFunc)
-            : _OwnerObserverBase(pHost)
+            : _Holder(pHost)
         {
             m_detachUniBaseFunc = detachUniBaseFunc;
         }
 
         // move constructor
         UniOwner(UniOwner &&other)
-            : _OwnerObserverBase(std::move(other))
+            : _Holder(std::move(other))
         {
             m_detachUniBaseFunc = other.m_detachUniBaseFunc;
             attachUniBase(other.m_uniBase_ptr);

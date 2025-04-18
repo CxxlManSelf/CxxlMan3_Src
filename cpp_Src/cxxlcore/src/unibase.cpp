@@ -15,14 +15,14 @@ namespace CXXL
 
         std::lock_guard<std::mutex> lock(m_UniBaseMutex);
 
-        if (rFlag == false) // 本身是 rootUniBase，即未放入過 _OwnerObserverBase 為 false
+        if (rFlag == false) // 本身是 rootUniBase，即未放入過 _Holder 為 false
             return false;
 
-        if (cFlag || m_OwnerObserverSet.size() == 0)
+        if (cFlag || m_holderSet.size() == 0)
             return false; // 回報我也要處理待結束共用確認
 
         bool fNoRootUniBase = true; // 有找到 rootUniBase 或還有要放棄持有的處理回覆 false
-        for (auto &it : m_OwnerObserverSet)
+        for (auto &it : m_holderSet)
         {
             auto pHost = it->m_pHost;
 
@@ -41,13 +41,13 @@ namespace CXXL
             return ldFlag = true; // 已標識須放棄共用
 
         // 無持有者了
-        if (m_OwnerObserverSet.size() == 0)
+        if (m_holderSet.size() == 0)
             return ldFlag = true;
 
         fFlag = true; // 設為已找過的狀態
 
         bool fNoRootUniBase; // 檢查是不是已經沒有 root 的 Host 存在
-        for (auto &it : m_OwnerObserverSet)
+        for (auto &it : m_holderSet)
         {
             auto pHost = it->m_pHost;
             fNoRootUniBase = ((RmConst<decltype(pHost)>::type)pHost)->checkNoHost();
@@ -67,13 +67,13 @@ namespace CXXL
         m_isDestroy = true;
         while (true)
         {
-            auto it = m_OwnerObserverSet.begin();
-            if (it == m_OwnerObserverSet.end())
+            auto it = m_holderSet.begin();
+            if (it == m_holderSet.end())
                 break;
 
             m_UniBaseMutex.unlock();
-            // 解鎖之後，不用擔心 _OwnerObserverBase 會不存在
-            // 這是處理的機制
+            // 解鎖之後，不用擔心 _Holder 會不存在
+            // 這是處理機制的
             (*it)->detachUniBase(this);
             m_UniBaseMutex.lock();
         }
@@ -87,34 +87,34 @@ namespace CXXL
 
     /****************************************************************************************** */
 
-    bool cxxlFASTCALL UniResourcePrivate::_UniBase::attach(const _OwnerObserverBase *pOwnerObserver)
+    bool cxxlFASTCALL UniResourcePrivate::_UniBase::attach(const _Holder *pHolder)
     {
         if (m_isDestroy)
             return false;
 
         rFlag = true;
-        m_OwnerObserverSet.insert(pOwnerObserver);
+        m_holderSet.insert(pHolder);
         return true;
     }
 
-    void cxxlFASTCALL UniResourcePrivate::_UniBase::detach(const _OwnerObserverBase *pOwnerObserver)
+    void cxxlFASTCALL UniResourcePrivate::_UniBase::detach(const _Holder *pHolder)
     {
-        m_OwnerObserverSet.erase(pOwnerObserver);
+        m_holderSet.erase(pHolder);
     }
 
-    bool cxxlFASTCALL UniResourcePrivate::_UniBase::attachObserver(const _OwnerObserverBase *pObserver)
+    bool cxxlFASTCALL UniResourcePrivate::_UniBase::attachObserver(const _Holder *pObserver)
     {
         std::lock_guard<std::mutex> lock(m_UniBaseMutex);
         return attach(pObserver);
     }
 
-    void cxxlFASTCALL UniResourcePrivate::_UniBase::detachObserver(const _OwnerObserverBase *pObserver)
+    void cxxlFASTCALL UniResourcePrivate::_UniBase::detachObserver(const _Holder *pObserver)
     {
         std::lock_guard<std::mutex> lock(m_UniBaseMutex);
         detach(pObserver);
     }
 
-    bool cxxlFASTCALL UniResourcePrivate::_UniBase::attachOwner(const _OwnerObserverBase *pOwner)
+    bool cxxlFASTCALL UniResourcePrivate::_UniBase::attachOwner(const _Holder *pOwner)
     {
         std::lock_guard<std::mutex> lock(m_UniBaseMutex);
         if (!attach(pOwner))
@@ -124,14 +124,14 @@ namespace CXXL
         return true;
     }
 
-    void cxxlFASTCALL UniResourcePrivate::_UniBase::detachOwner(const _OwnerObserverBase *pOwner)
+    void cxxlFASTCALL UniResourcePrivate::_UniBase::detachOwner(const _Holder *pOwner)
     {
         std::lock_guard<std::mutex> lock(m_UniBaseMutex);
         detach(pOwner);
         m_isDestroy = removeOwner();
     }
 
-    void cxxlFASTCALL UniResourcePrivate::_UniBase::detachMoveOwner(const _OwnerObserverBase *pOwner)
+    void cxxlFASTCALL UniResourcePrivate::_UniBase::detachMoveOwner(const _Holder *pOwner)
     {
         std::lock_guard<std::mutex> lock(m_UniBaseMutex);
         detach(pOwner);
