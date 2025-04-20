@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include <unibase.hpp>
+#include <uniptr.hpp>
 
 using namespace CxxlMan3;
 
@@ -30,7 +30,7 @@ public:
         std::cout << "MyClassA destructor\n";
     }
 
-    void cxxlFASTCALL addMyB(const std::shared_ptr<MyClassB> &myB_ptr)
+    void cxxlFASTCALL addMyB(const UniPtr<MyClassB> &myB_ptr)
     {
         m_myB.setUniBase(myB_ptr);
     }
@@ -60,7 +60,7 @@ public:
         std::cout << "MyClassB destructor\n";
     }
     
-    void cxxlFASTCALL addMyA(const std::shared_ptr<MyClassA> &myA_ptr)
+    void cxxlFASTCALL addMyA(const UniPtr<MyClassA> &myA_ptr)
     {
         m_myA.setUniBase(myA_ptr);        
     }
@@ -88,7 +88,7 @@ public:
         std::cout << "MyRoot destructor\n";
     }
 
-    void cxxlFASTCALL addMyA(const std::shared_ptr<MyClassA> &myA_ptr)
+    void cxxlFASTCALL addMyA(const UniPtr<MyClassA> &myA_ptr)
     {
         m_myA.setUniBase(myA_ptr);        
     }
@@ -101,8 +101,8 @@ int main(int, char**)
         std::cout << "已經取得核心銷毁控制器\n";
         std::cout << "按 <enter> 鍵繼續\n"; std::cin.get();
     
-        std::shared_ptr<MyClassA> myA_ptr = std::make_shared<MyClassA>();
-        std::shared_ptr<MyClassB> myB_ptr = std::make_shared<MyClassB>();
+        UniPtr<MyClassA> myA_ptr(new MyClassA);
+        UniPtr<MyClassB> myB_ptr = new MyClassB;
         std::cout << "已經建立了 myA_ptr 和 myB_ptr\n";
         std::cout << "按 <enter> 鍵繼續\n"; std::cin.get();
     
@@ -111,7 +111,7 @@ int main(int, char**)
         std::cout << "已經讓 myA_ptr 和 myB_ptr 互相引用\n";
         std::cout << "按 <enter> 鍵繼續\n"; std::cin.get();
     
-        std::shared_ptr<MyRoot> myRoot_ptr = std::make_shared<MyRoot>();
+        UniPtr<MyRoot> myRoot_ptr = new MyRoot;
         std::cout << "已經建立了 myRoot_ptr\n";
         std::cout << "按 <enter> 鍵繼續\n"; std::cin.get();
     

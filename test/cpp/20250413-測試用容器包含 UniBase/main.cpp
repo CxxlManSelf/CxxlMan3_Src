@@ -7,7 +7,7 @@
 #include <iostream>
 #include <unordered_set>
 
-#include <unibase.hpp>
+#include <uniptr.hpp>
 
 using namespace CxxlMan3;
 
@@ -78,8 +78,9 @@ struct Equal
 {
     bool operator()(const UniOwner<MyUniBase> &lhs, const UniOwner<MyUniBase> &rhs) const
     {
-        return lhs.getUniBase() != nullptr && rhs.getUniBase() != nullptr && 
-               lhs.getUniBase().get() == rhs.getUniBase().get();
+        MyUniBase *p1 = lhs.getUniBase().get(), *p2 = rhs.getUniBase().get();
+        return p1 != nullptr && p2 != nullptr && 
+               p1 == p2;
     }
 };
 
@@ -101,7 +102,7 @@ public:
     }
 
     // Setter
-    void addUniBase(const std::shared_ptr<MyUniBase> &uniBase_ptr)
+    void addUniBase(const UniPtr<MyUniBase> &uniBase_ptr)
     {
         // 設定 UniOwner 所需要的 detachUniBaseFunc
         auto detachUniBaseFunc = [this](UniOwner<MyUniBase> *pSender, void *pChkUniBase)
@@ -130,7 +131,7 @@ public:
     }
 
     // 移除指定的 MyUniBase
-    void removeUniBase(const std::shared_ptr<MyUniBase> &uniBase_ptr)
+    void removeUniBase(const UniPtr<MyUniBase> &uniBase_ptr)
     {
         std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -151,7 +152,7 @@ template <typename UNIBASE>
 class KickUniBase : public UniBase<UniBaseType::ONE>
 {
 public:
-    KickUniBase(std::shared_ptr<UNIBASE> &uniBase_ptr)
+    KickUniBase(UniPtr<UNIBASE> &uniBase_ptr)
     {
 
         UniOwner<UNIBASE> uniOwner(this, [](UniOwner<MyUniBase> *pSender, void *pChkUniBase) {});
@@ -169,9 +170,9 @@ int main(int, char **)
         std::cin.get();
 
         MyRoot root_ptr;
-        std::shared_ptr<MyUniBase> uniBase1_ptr(new MyUniBase1());
-        std::shared_ptr<MyUniBase> uniBase2_ptr(new MyUniBase2());
-        std::shared_ptr<MyUniBase> uniBase3_ptr(new MyUniBase3());
+        UniPtr<MyUniBase> uniBase1_ptr(new MyUniBase1());
+        UniPtr<MyUniBase> uniBase2_ptr(new MyUniBase2());
+        UniPtr<MyUniBase> uniBase3_ptr(new MyUniBase3());
         std::cout << "已經產生所有要測試的 UniBase 物件\n";
         std::cout << "按 <enter> 鍵繼續\n";
         std::cin.get();
@@ -213,6 +214,10 @@ int main(int, char **)
 
         root_ptr.doSomething();
         std::cout << std::endl;
+
+        std::cout << "接下來 root 將被銷毀\n";
+        std::cout << "按 <enter> 鍵繼續\n";
+        std::cin.get();
     }
     std::cout << "已經完成所有的演示，程式將結束\n";
     std::cout << "按 <enter> 鍵結束程式\n";
