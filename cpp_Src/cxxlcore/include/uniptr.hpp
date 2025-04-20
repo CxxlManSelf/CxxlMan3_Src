@@ -1,5 +1,5 @@
 /***********************************************************************
- * uniptr.hpp v1.0.0
+ * uniptr.hpp v1.0.3
  *
  * UniPtr<>  封裝 std::shared_ptr，取代 std::shared_ptr，用法
  *           類似 std::shared_ptr，以附加一些額外的處理
@@ -48,12 +48,13 @@ namespace CXXL
 
 
         // Constructor
+        // 提供給共享處理內部使用
         UniPtr(const std::shared_ptr<UNIBASE> &uniBase_ptr) : m_uniBase_ptr(uniBase_ptr) {}
 
     public:
 
         // Constructor
-        UniPtr(UNIBASE *pUniBase)
+        UniPtr(UNIBASE *pUniBase = nullptr)
             : m_uniBase_ptr(pUniBase)
         {
         }
@@ -108,6 +109,21 @@ namespace CXXL
         {
             return m_uniBase_ptr.get();
         }
+
+        // 提供一個轉型機制
+        // 先用 get() 取得 UniBase 後自行轉型
+        // 再用此功能包裹成 UniPtr
+        // 以使用相同的計數器
+        template <typename T>
+        UniPtr<T> cast(T *p) const
+        {
+            if (p == nullptr) return UniPtr<T>(nullptr);
+            if (m_uniBase_ptr == nullptr) return UniPtr<T>(nullptr);
+            return UniPtr<T>(std::shared_ptr<T>(m_uniBase_ptr,p));
+        }
+
+        template <typename T>
+        friend class UniPtr;
 
         template <typename T>
         friend class UniObserver;

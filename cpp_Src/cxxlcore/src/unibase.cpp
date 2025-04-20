@@ -73,7 +73,7 @@ namespace CXXL
 
             m_UniBaseMutex.unlock();
             // 解鎖之後，不用擔心 _Holder 會不存在
-            // 這是處理機制的
+            // 這是處理機制要做到的責任
             (*it)->detachUniBase(this);
             m_UniBaseMutex.lock();
         }
@@ -159,7 +159,7 @@ namespace CXXL
             if (cFlag)
                 return;
 
-            if(F = ldFlag) // 前次檢查放棄共用處理器已判定須放棄共用
+            if(F = ldFlag) // 前次檢查放棄共用，處理器已判定須放棄共用
                 onlyAddFlag = true;
             else
                 cFlag = true; // 標記已放入放棄共用佇列

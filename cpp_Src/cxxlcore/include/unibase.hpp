@@ -1,14 +1,14 @@
 /************************************************************************************************
- * unibase.hpp v1.1.22
+ * unibase.hpp v1.1.23
  *
  * UniBase<>    統一基底，由此延伸出來的類別可以被安全共享，可以由 UniOwner 的持有來決定物件的是否
  *              結束共用。可分為
  *              UniBase<ALL> 須所有 UniOwner 放棄持有才會被結束共用
  *              UniBase<ONE> 只要有一個 UniOwner 放棄持有就會被結束共用
  *              注意！UniBase<ALL> 和 UniBase<ONE> 不可以多重繼承，在 DEBUG 模式下會進行檢查
- * UniOwner     UniBase 的管理器，可安全的共用 UniBase<>，可以藉由放棄來決定 UniBase<> 物件
- *              的是否結束共用
- * UniObserver  UniBase 的觀察者，可安全的共用 UniBase<>，但不參與 UniBase<> 的共用管理
+ * UniOwner     UniBase 的管理器，可安全的持有共用 UniBase<>，可以藉由放棄持有來決定 UniBase<> 物
+ *              件的是否結束共用
+ * UniObserver  UniBase 的觀察者，可安全的持有共用 UniBase<>，但不參與 UniBase<> 的共用管理
  *
  * Author: CxxlMan
  * Date: 2025 -
@@ -25,7 +25,6 @@
 
 #include "rmconst.hpp"
 #include "unibasedestructor.hpp"
-// #include "uniptr.hpp"
 
 namespace CXXL
 {
@@ -53,7 +52,7 @@ namespace CXXL
     // 在此宣告一些 private 類別
     class UniResourcePrivate
     {
-        class _Holder;
+        class _Holder; // UniOwner 和 UniObserver 的 base 類別
 
         // UniBase<> 的基礎類別
         class CXXLCORE_DLLEXPORT _UniBase : public IDestroyable
@@ -62,13 +61,13 @@ namespace CXXL
             {
                 struct
                 {
-                    bool cFlag : 1;       // 已放入待刪佇列為 true，否則為 false
-                    bool fFlag : 1;       // 結束共用處理器已搜尋過為 true，否則為 false
-                    bool rFlag : 1;       // 本身是 rootUniBase,即未放入過 _Holder 為 false，否則為 true
-                    bool ldFlag : 1;      // 結束共用處理器已判定須結束共用為 true
+                    bool cFlag : 1;       // 已放入放棄共用待處理佇列為 true，否則為 false
+                    bool fFlag : 1;       // 放棄共用處理器已搜尋過為 true，否則為 false
+                    bool rFlag : 1;       // 本身是 rootUniBase，即未放入過 _Holder 為 false，否則為 true
+                    bool ldFlag : 1;      // 放棄共用處理器已處理過判定須結束共用為 true
                     bool m_isDestroy : 1; // 用來標記 _UniBase 物件是不是要結束共用了，被標記的物件不能再
                                           // 被 _Holder 持有
-                    bool onlyAddFlag : 1; // 已放入 only add 佇列為 true，否則為 false
+                    bool onlyAddFlag : 1; // 以 onlyAdd 身份放入放棄共用佇列為 true，否則為 false
                 };
                 uint8_t allFlags = 0; // 用於快速清為 0
             };
@@ -116,12 +115,12 @@ namespace CXXL
             void cxxlFASTCALL detachOwner(const _Holder *pOwner);
             void cxxlFASTCALL detachMoveOwner(const _Holder *pOwner); // 不做銷毁標記
 
-            // 叫用 detachOwner() 之後呼叫銷毁器檢查是否需要結束共用
-            // UniBase_ptr 其實就是自己，只是為了有 std::shared_ptr 包裹，會交給結束共用處理器
+            // 叫用 detachOwner() 或 detachObserver() 之後，呼叫此功能檢查是否需要結束共用
+            // UniBase_ptr 其實就是自己，只是為了有 std::shared_ptr 包裹，會交給放棄共用處理器
             void cxxlFASTCALL checkDestroy(const std::shared_ptr<_UniBase> &uniBase_ptr);
 
-            // 只是放入待放棄佇列
-            // UniBase_ptr 其實就是自己，只是為了有 std::shared_ptr 包裹，會交給結束共用處理器
+            // 只是放入待放棄佇列，避免 destroy 處理時卻不存在了
+            // UniBase_ptr 其實就是自己，只是為了有 std::shared_ptr 包裹，會交給放棄共用處理器
             void cxxlFASTCALL onlyAdd(const std::shared_ptr<_UniBase> &uniBase_ptr);
 
         public:
@@ -286,14 +285,14 @@ namespace CXXL
     /*****************************************************************************/
     /*
     ** UniBase 觀察者，可安全的共用 UniBase<>，但不參與 UniBase<> 的生存管理
-    ** UniBase<> 要被結束共用會獲得通知
+    ** UniBase<> 要被結束共用時會獲得通知
     */
     template <typename UNIBASE>
     class UniObserver : UniResourcePrivate::_Holder
     {
         // 使用端要做好 _Holder 的同步控制，以及放棄持有 _UniBase。
         // pChkUniBase 作為要檢查的 _UniBase，判斷持有的 _UniBase 是否和要被放棄的 pChkUniBase 相同
-        // pSender 發出通知的 UniObserver
+        // pSender 發出此通知的 UniObserver
         std::function<void(UniObserver<UNIBASE> *pSender, void *pChkUniBase)> m_detachUniBaseFunc;
 
         // 要持有的 UniBase
@@ -408,15 +407,15 @@ namespace CXXL
     };
 
     /*
-    ** UniBase 的管理器，可安全的共用 UniBase<>，可以藉由放棄來決定 UniBase<> 物件的生存
-    ** UniBase<> 要被結束共用會獲得通知
+    ** UniBase 的管理器，可安全的共用 UniBase<>，可以藉由放棄持有來決定 UniBase<> 物件的生存
+    ** UniBase<> 要被結束共用時會獲得通知
     */
     template <typename UNIBASE>
     class UniOwner : UniResourcePrivate::_Holder
     {
         // 使用端要做好 _Holder 的同步控制，以及放棄持有 _UniBase。
         // pChkUniBase 作為要檢查的 _UniBase，判斷持有的 _UniBase 是否和要被放棄的 pChkUniBase 相同
-        // pSender 發出通知的 UniOwner
+        // pSender 發出此通知的 UniOwner
         std::function<void(UniOwner<UNIBASE> *pSender, void *pChkUniBase)> m_detachUniBaseFunc;
 
         // 要持有的 UniBase
