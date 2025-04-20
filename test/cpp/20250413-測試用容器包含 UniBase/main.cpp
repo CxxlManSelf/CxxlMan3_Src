@@ -147,7 +147,7 @@ public:
     }
 };
 
-// 這是一個實用的技巧，可以釋放 std::shared_ptr 也可以觸發銷毀處理器
+// 這是一個實用的技巧，可以釋放 UniPtr 也可以觸發放棄共享處理器
 template <typename UNIBASE>
 class KickUniBase : public UniBase<UniBaseType::ONE>
 {
@@ -219,7 +219,7 @@ int main(int, char **)
         std::cout << "按 <enter> 鍵繼續\n";
         std::cin.get();
     }
-    std::cout << "已經完成所有的演示，程式將結束\n";
+    std::cout << "\n已經完成所有的演示，程式將結束\n";
     std::cout << "按 <enter> 鍵結束程式\n";
     std::cin.get();
 }
