@@ -1,5 +1,5 @@
 /************************************************************************************************
- * uniresdestructor.hpp v1.0.4
+ * uniresdestructor.hpp v1.0.5
  *
  * 提供結束共用 UniBase 功能的介面
  * 
@@ -39,8 +39,8 @@ namespace CXXL
         // 將 fFlag 清為 false
         virtual void cxxlFASTCALL LD_clearFFlag() = 0;
 
-        // 將 onlyAddFlag 清為 false
-        virtual void cxxlFASTCALL LD_clearOnlyAddFlag() = 0;
+        // 將 justAddFlag 清為 false
+        virtual void cxxlFASTCALL LD_clearJustAddFlag() = 0;
     };
 
     // 放棄持有的處理界面
@@ -55,7 +55,7 @@ namespace CXXL
         virtual void cxxlFASTCALL checkDestroy(const std::shared_ptr<IDestroyable> &destroyable_ptr) = 0;
 
         // 不進行檢測，只放入待放棄清單，以免多執行緒干擾
-        virtual void cxxlFASTCALL onlyAdd(const std::shared_ptr<IDestroyable> &destroyable_ptr) = 0;
+        virtual void cxxlFASTCALL justAdd(const std::shared_ptr<IDestroyable> &destroyable_ptr) = 0;
 
         // 被結束共用處理器巡行過的 UniBase 被設定 fFlag，須叫用此函數記錄以便巡行後將 fFlag 清除
         virtual void cxxlFASTCALL reset_fFlag(const IDestroyable *pDestroyable) = 0;

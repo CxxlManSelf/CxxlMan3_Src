@@ -1,5 +1,5 @@
 /************************************************************************************************
- * unibase.hpp v1.1.23
+ * unibase.hpp v1.1.24
  *
  * UniBase<>    統一基底，由此延伸出來的類別可以被安全共享，可以由 UniOwner 的持有來決定物件的是否
  *              結束共用。可分為
@@ -67,7 +67,7 @@ namespace CXXL
                     bool ldFlag : 1;      // 放棄共用處理器已處理過判定須結束共用為 true
                     bool m_isDestroy : 1; // 用來標記 _UniBase 物件是不是要結束共用了，被標記的物件不能再
                                           // 被 _Holder 持有
-                    bool onlyAddFlag : 1; // 以 onlyAdd 身份放入放棄共用佇列為 true，否則為 false
+                    bool justAddFlag : 1; // 以 justAdd 身份放入放棄共用佇列為 true，否則為 false
                 };
                 uint8_t allFlags = 0; // 用於快速清為 0
             };
@@ -81,7 +81,7 @@ namespace CXXL
 
             virtual void cxxlFASTCALL LD_clearFFlag() override final; // class IDestroyable
 
-            virtual void cxxlFASTCALL LD_clearOnlyAddFlag() override final; // class IDestroyable
+            virtual void cxxlFASTCALL LD_clearJustAddFlag() override final; // class IDestroyable
 
             mutable std::mutex m_UniBaseMutex;
 
@@ -121,7 +121,7 @@ namespace CXXL
 
             // 只是放入待放棄佇列，避免 destroy 處理時卻不存在了
             // UniBase_ptr 其實就是自己，只是為了有 std::shared_ptr 包裹，會交給放棄共用處理器
-            void cxxlFASTCALL onlyAdd(const std::shared_ptr<_UniBase> &uniBase_ptr);
+            void cxxlFASTCALL justAdd(const std::shared_ptr<_UniBase> &uniBase_ptr);
 
         public:
             // Constructor

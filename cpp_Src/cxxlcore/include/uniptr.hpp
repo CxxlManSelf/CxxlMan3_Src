@@ -1,5 +1,5 @@
 /***********************************************************************
- * uniptr.hpp v1.0.3
+ * uniptr.hpp v1.0.4
  *
  * UniPtr<>  封裝 std::shared_ptr，取代 std::shared_ptr，用法
  *           類似 std::shared_ptr，以附加一些額外的處理
@@ -36,14 +36,14 @@ namespace CXXL
             if(m_uniBase_ptr == nullptr) return;
 
 
-            // tmp_ptr 確保 onlyAdd() 執行後 _UniBase 還活著
+            // tmp_ptr 確保 justAdd() 執行後 _UniBase 還活著
             std::shared_ptr<UniResourcePrivate::_UniBase>
                 tmp_ptr(m_uniBase_ptr,
                     (UniResourcePrivate::_UniBase *)m_uniBase_ptr.get());
 
             m_uniBase_ptr.reset();
 
-            tmp_ptr->onlyAdd(tmp_ptr);
+            tmp_ptr->justAdd(tmp_ptr);
         }
 
 

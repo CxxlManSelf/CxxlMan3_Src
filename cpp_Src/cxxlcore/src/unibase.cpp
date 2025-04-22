@@ -85,10 +85,10 @@ namespace CXXL
         fFlag = false;
     }
 
-    void cxxlFASTCALL UniResourcePrivate::_UniBase::LD_clearOnlyAddFlag()
+    void cxxlFASTCALL UniResourcePrivate::_UniBase::LD_clearJustAddFlag()
     {
         std::lock_guard<std::mutex> lock(m_UniBaseMutex);
-        onlyAddFlag = false;
+        justAddFlag = false;
     }
 
 
@@ -160,19 +160,19 @@ namespace CXXL
                 return;
 
             if(F = ldFlag) // 前次檢查放棄共用，處理器已判定須放棄共用
-                onlyAddFlag = true;
+                justAddFlag = true;
             else
                 cFlag = true; // 標記已放入放棄共用佇列
         }
 
         // 前次檢查已判定放棄共用
         if (F)
-            g_pUniBaseDestructor->onlyAdd(std::static_pointer_cast<IDestroyable>(uniBase_ptr));
+            g_pUniBaseDestructor->justAdd(std::static_pointer_cast<IDestroyable>(uniBase_ptr));
         else
             g_pUniBaseDestructor->checkDestroy(std::static_pointer_cast<IDestroyable>(uniBase_ptr));
     }
 
-    void cxxlFASTCALL UniResourcePrivate::_UniBase::onlyAdd(const std::shared_ptr<_UniBase> &uniBase_ptr)
+    void cxxlFASTCALL UniResourcePrivate::_UniBase::justAdd(const std::shared_ptr<_UniBase> &uniBase_ptr)
     {
         {
             std::lock_guard<std::mutex> lock(m_UniBaseMutex);
@@ -181,13 +181,13 @@ namespace CXXL
             if (cFlag)
                 return;
 
-            if(onlyAddFlag) // 已放入 only add 佇列
+            if(justAddFlag) // 已放入 only add 佇列
                 return;
 
-            onlyAddFlag = true;
+            justAddFlag = true;
         } 
 
-        g_pUniBaseDestructor->onlyAdd(std::static_pointer_cast<IDestroyable>(uniBase_ptr));
+        g_pUniBaseDestructor->justAdd(std::static_pointer_cast<IDestroyable>(uniBase_ptr));
     }
 
     // Constructor

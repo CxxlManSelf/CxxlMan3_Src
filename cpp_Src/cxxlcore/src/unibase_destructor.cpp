@@ -112,13 +112,13 @@ namespace CXXL
                                        g_Destructor.reset_fFlag(pDestroyable);
 }
 
-void cxxlFASTCALL onlyAdd(const std::shared_ptr<IDestroyable> &destroyable_ptr)
+void cxxlFASTCALL justAdd(const std::shared_ptr<IDestroyable> &destroyable_ptr)
     override // class IUniBaseDestructor
 {
     // destroyable_ptr 保存到待放棄清單，避免多執行緒 destroy 干擾
     g_Destructor.add(
         [destroyable_ptr]() {
-        destroyable_ptr->LD_clearOnlyAddFlag();
+        destroyable_ptr->LD_clearJustAddFlag();
     });
 }
 
