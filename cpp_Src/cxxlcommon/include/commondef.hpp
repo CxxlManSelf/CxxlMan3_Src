@@ -1,5 +1,5 @@
 /***********************************************************
- * commondef.hpp v0.1.0
+ * commondef.hpp v1.0.0
  * 
  * 通用的定義
  * 
@@ -22,21 +22,6 @@
   #define cxxlSTDSTRING std::string
 #endif
 
-/* 
-  為 DLL 的函數和 class 提供前綴語法
-
-  CXXL_DLLEXPORT   提供作為 dll 時使用
-  CXXL_DLLIMPORT   使用端引用時使用
-*/
-#if defined(_WIN32) || defined(_WIN64)
-  #define CXXL_DLLEXPORT __declspec( dllexport )
-  #define CXXL_DLLIMPORT __declspec( dllimport )
-#elif defined(__APPLE__) || defined(__MACH__) || defined(__linux__)
-  #define CXXL_DLLEXPORT
-  #define CXXL_DLLIMPORT
-#else
-  #error "Unsupported platform"
-#endif  
 
 
 #endif // __CXXLCOMMON_COMMONDEF_HPP_CxxlMan3

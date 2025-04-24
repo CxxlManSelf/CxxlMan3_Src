@@ -1,5 +1,5 @@
 /*******************************************************************************
- * cxxlcommon.hpp v0.1.0
+ * cxxlcommon.hpp v1.0.0
  * 
  * C++ Library Common
  *
@@ -9,7 +9,7 @@
 #ifndef __CXXLCOMMON_CXXLCOMMON_HPP_CxxlMan3
 #define __CXXLCOMMON_CXXLCOMMON_HPP_CxxlMan3
 
-#include "commondef.hpp"
+#include "sysdef.hpp"
 
 #if defined(_CXXLCOMMON_DLLEXPORT)
 #define CXXLCOMMON_DLLEXPORT CXXL_DLLEXPORT

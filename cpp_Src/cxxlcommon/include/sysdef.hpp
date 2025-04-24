@@ -1,5 +1,5 @@
 /**************************************************************
-* sysdef.hpp v1.0.0
+* sysdef.hpp v1.0.1
 *
 * 依照不同的平台做適當的設定
 *
@@ -46,5 +46,22 @@
     #define PLATFORM_NAME _UNKNOWN_CxxlMan3
     #error "Unsupported platform"
 #endif
+
+/* 
+  為 DLL 的函數和 class 提供前綴語法
+
+  CXXL_DLLEXPORT   提供作為 dll 時使用
+  CXXL_DLLIMPORT   使用端引用時使用
+*/
+#if defined(_WIN32) || defined(_WIN64)
+  #define CXXL_DLLEXPORT __declspec( dllexport )
+  #define CXXL_DLLIMPORT __declspec( dllimport )
+#elif defined(__APPLE__) || defined(__MACH__) || defined(__linux__)
+  #define CXXL_DLLEXPORT
+  #define CXXL_DLLIMPORT
+#else
+  #error "Unsupported platform"
+#endif  
+
 
 #endif // __CXXLCOMMON_SYSDEF_HPP_CxxlMan3

@@ -1,4 +1,4 @@
-#include <sysdef.hpp>
+
 #include <dll_loader.hpp>
 
 namespace CXXL
@@ -26,12 +26,12 @@ namespace CXXL
         // 為了方便取得自己的 std::shared_ptr
         std::weak_ptr<IDllLoader> m_DllLoader_ptr;
 
-        std::shared_ptr<IDllLoader> cxxlFASTCALL getDllLoader() override
+        std::shared_ptr<IDllLoader> cxxlFASTCALL getDllLoader() const override
         {
             return m_DllLoader_ptr.lock();
         }
 
-        virtual void *cxxlFASTCALL getProcAddress(const cxxlSTDSTRING &procName) override
+        virtual void *cxxlFASTCALL getProcAddress(const cxxlSTDSTRING &procName) const override
         {
 #if (PLATFORM_NAME == _WINDOWS_CxxlMan3)
             return (void *)GetProcAddress(m_handle, (const char *)procName.c_str());
@@ -74,7 +74,7 @@ namespace CXXL
         }
     };
 
-    std::shared_ptr<IDllLoader> CXXL_DLLEXPORT IDllLoader::create(const cxxlSTDSTRING &dllPath)
+    CXXL_DLLEXPORT std::shared_ptr<IDllLoader> cxxlFASTCALL IDllLoader::create(const cxxlSTDSTRING &dllPath)
     {
         DllLoader *pDllLoader(new DllLoader(dllPath));
         if (!pDllLoader->isValid())

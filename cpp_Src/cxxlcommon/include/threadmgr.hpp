@@ -1,5 +1,5 @@
 /****************************************************************************************
- * threadmgr.hpp v1.0.10
+ * threadmgr.hpp v1.0.11
  *
  *  提供兩個執行緒的管理功能
  *
@@ -195,13 +195,12 @@ namespace CXXL
 
         size_t m_maxThreads;     // 最大執行緒數量
         size_t m_numThreads = 0; // 目前多少執行緒在執行
+        size_t m_existThreads; // 目前存活執行緒數量
 
         cxxlSemaphore m_allTasksDone{1,1};    // 等待所有的任務都結束
 
         // 目前有多少在使用 waitAllTask()
         std::atomic<size_t> m_numWaitUsers{0}; 
-
-        bool m_isExit = false; // 為 true 表示解構函數要所有執行緒離開 
 
         // 由 thredProc() 呼叫
         // 取出一個任務，若回覆 false 則 thredProc 會 block
@@ -229,26 +228,27 @@ namespace CXXL
         void cxxlFASTCALL threadProc()
         {
             std::function<void(void)> Func;
-            while (true)
+            while (!m_isStop)
             {
                 m_gate.wait();
                 {
                     std::lock_guard<std::mutex> lock(m_task_mutex);
-                    ++m_numThreads;
-                    if(m_isExit)
+                    if(m_isStop && m_tasks.empty())
                         break;
+                    else
+                        ++m_numThreads;
                 }
 
                 while (true)
                 {
                     if (!getTask(Func))
-                        break;
+                        break;                    
                     Func();
                 }
             }
             
             m_task_mutex.lock();
-            if(m_numThreads == m_maxThreads) // 所有執行緒都結束
+            if(--m_existThreads == 0) // 所有執行緒都結束
             {
                 m_task_mutex.unlock();
                 m_allTasksDone.release();
@@ -263,6 +263,7 @@ namespace CXXL
         // maxThreads = 最大執行緒數量
         ThreadPool(size_t maxThreads = std::thread::hardware_concurrency())
             : m_maxThreads(maxThreads),
+              m_existThreads(maxThreads),
               m_gate(maxThreads, 0)
         {
             for (size_t i = 0; i < maxThreads; ++i)
@@ -275,21 +276,20 @@ namespace CXXL
         // Destructor
         ~ThreadPool()
         {
-            {
-                std::lock_guard<std::mutex> lock(m_task_mutex);
-                m_isStop = true;
-            }
 
             if constexpr (NOTWAIT == false) 
             {
                 m_allTasksDone.wait();
             }
 
-            m_isExit = true;
+            {
+                std::lock_guard<std::mutex> lock(m_task_mutex);
+                m_isStop = true;
+                // 讓被 block 的執行緒結束
+                for (size_t i = 0; i < m_maxThreads; ++i)
+                    m_gate.release();
+            }
 
-            // 讓被 block 的執行緒結束
-            for (size_t i = 0; i < m_maxThreads; ++i)
-                m_gate.release();
 
             if constexpr (NOTWAIT == false) 
             {
@@ -311,8 +311,6 @@ namespace CXXL
                 std::lock_guard<std::mutex> lock(m_task_mutex);
                 m_isStop = true;
             }
-
-            m_isExit = true;
 
             // 讓被 block 的執行緒結束
             for (size_t i = 0; i < m_maxThreads; ++i)

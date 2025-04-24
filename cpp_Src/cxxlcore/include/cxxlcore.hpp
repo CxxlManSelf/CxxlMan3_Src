@@ -1,5 +1,5 @@
 /*******************************************************************************
- * cxxlcore.hpp v1.0.0
+ * cxxlcore.hpp v1.0.1
  * 
  * C++ Library Core
  * 
@@ -9,7 +9,7 @@
 #ifndef __CXXLCORE_CXXLCORE_HPP_CxxlMan3
 #define __CXXLCORE_CXXLCORE_HPP_CxxlMan3
 
-#include "commondef.hpp"
+#include "sysdef.hpp"
 
 #if defined(_CXXLCORE_DLLEXPORT)
 #define CXXLCORE_DLLEXPORT CXXL_DLLEXPORT
