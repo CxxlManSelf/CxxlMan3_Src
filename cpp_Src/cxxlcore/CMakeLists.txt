@@ -8,11 +8,10 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/version.rc.in
                        ${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}/version.rc 
                       @ONLY)
 
-
+include_directories("../cxxlcommon/include" "include")
 aux_source_directory(src SRC_LIST)
 
-
-#set(LIBSRC_LIST cxxlcommon)
+set(LIBSRC_LIST cxxlcommon)
 if(UNIX)
     set(LIBSRC_LIST ${LIBSRC_LIST} pthread)
 endif()
@@ -20,7 +19,6 @@ endif()
 # 編譯程式庫時需要加入這個巨集，以作為和使用端的編譯做區別
 add_definitions(-D_CXXLCORE_DLLEXPORT)
 
-include_directories("../cxxlcommon/include" "include")
 add_library(${TARGET_NAME} SHARED ${SRC_LIST})
 target_sources(${TARGET_NAME} PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}/version.rc)
 if (NOT LIBSRC_LIST STREQUAL "")

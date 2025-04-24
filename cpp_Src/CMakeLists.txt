@@ -15,7 +15,7 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -D_DEBUG")
 
 add_subdirectory(cxxlcommon cxxlcommon_tmp)
 add_subdirectory(cxxlcore cxxlcore_tmp)
-add_subdirectory(cxxlplug cxxlplug_tmp)
+#add_subdirectory(cxxlplug cxxlplug_tmp)
 
 
 

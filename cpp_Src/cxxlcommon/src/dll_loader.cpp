@@ -74,7 +74,7 @@ namespace CXXL
         }
     };
 
-    std::shared_ptr<IDllLoader> IDllLoader::create(const std::u8string &dllPath)
+    std::shared_ptr<IDllLoader> CXXL_DLLEXPORT IDllLoader::create(const cxxlSTDSTRING &dllPath)
     {
         DllLoader *pDllLoader(new DllLoader(dllPath));
         if (!pDllLoader->isValid())

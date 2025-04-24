@@ -1,24 +1,23 @@
 /*****************************************************************************
- * dll_loader.hpp v1.0.4
+ * dll_loader.hpp v1.0.5
  *
- * 跨平臺動態連結程式庫載入器介面，取得的函數都是用 std::function 包裹。
- * 所有載入器的持有者放棄持有，和所有取得的函數銷毀後，動態連結程式庫才會自動卸載
+ * 跨平臺動態連結程式庫載入器介面，取得的函數都用 std::function 包裹。
+ * 所有載入器的持有者放棄持有，以及所有取得的函數銷毀後，動態連結程式庫才會自動卸載
  *
  * Author: CxxlMan
  * Date: 2025 -
  *****************************************************************************/
-#ifndef __CXXLPLUG_DLL_LOADER_HPP_CxxlMan3
-#define __CXXLPLUG_DLL_LOADER_HPP_CxxlMan3
+#ifndef __CXXLCOMMON_DLL_LOADER_HPP_CxxlMan3
+#define __CXXLCOMMON_DLL_LOADER_HPP_CxxlMan3
 
 #include <memory>
 #include <string>
 #include <functional>
 
-#include "cxxlplug,hpp"
+#include "cxxlcommon.hpp"
 
 namespace CXXL
 {
-
     class IDllLoader
     {
         // 取得包裹自己的 std::shared_ptr
@@ -51,9 +50,9 @@ namespace CXXL
 
         // 建立載入器，會載入指定的動態連結程式庫
         // 若無法載入回覆 nullptr
-        static std::shared_ptr<IDllLoader> CXXL_DLLEXPORT create(const std::u8string &dllPath);
+        static std::shared_ptr<IDllLoader> CXXLCOMMON_DLLEXPORT create(const cxxlSTDSTRING &dllPath);
     };
-
-} // namespace CXXL
+    
+}
 
 #endif
