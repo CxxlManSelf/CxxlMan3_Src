@@ -113,7 +113,7 @@ namespace CXXL
             bool cxxlFASTCALL attachOwner(const _Holder *pOwner);
 
             void cxxlFASTCALL detachOwner(const _Holder *pOwner);
-            void cxxlFASTCALL detachMoveOwner(const _Holder *pOwner); // 不做銷毁標記
+            void cxxlFASTCALL detachMoveOwner(const _Holder *pOwner); // 不做銷毀標記
 
             // 叫用 detachOwner() 或 detachObserver() 之後，呼叫此功能檢查是否需要結束共用
             // UniBase_ptr 其實就是自己，只是為了有 std::shared_ptr 包裹，會交給放棄共用處理器

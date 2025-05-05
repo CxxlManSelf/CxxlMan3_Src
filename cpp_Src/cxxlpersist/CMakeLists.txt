@@ -19,21 +19,21 @@ endif()
 # 編譯程式庫時需要加入這個巨集，以作為和使用端的編譯做區別
 add_definitions(-D_CXXLPERSIST_DLLEXPORT)
 
-#add_library(${TARGET_NAME} SHARED ${SRC_LIST})
-#target_sources(${TARGET_NAME} PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}/version.rc)
-#if (NOT LIBSRC_LIST STREQUAL "")
-#    target_link_libraries(${TARGET_NAME} ${LIBSRC_LIST})
-#endif()
+add_library(${TARGET_NAME} SHARED ${SRC_LIST})
+target_sources(${TARGET_NAME} PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}/version.rc)
+if (NOT LIBSRC_LIST STREQUAL "")
+    target_link_libraries(${TARGET_NAME} ${LIBSRC_LIST})
+endif()
 
 
-#install(TARGETS ${TARGET_NAME}
-#        RUNTIME DESTINATION bin
-#        LIBRARY DESTINATION lib
-#        ARCHIVE DESTINATION lib
-#        )
+install(TARGETS ${TARGET_NAME}
+        RUNTIME DESTINATION bin
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib
+        )
 
-#if (MSVC)        
-#    install(FILES $<TARGET_PDB_FILE:${TARGET_NAME}> DESTINATION bin OPTIONAL)
-#endif()
+if (MSVC)        
+    install(FILES $<TARGET_PDB_FILE:${TARGET_NAME}> DESTINATION bin OPTIONAL)
+endif()
 
 install(DIRECTORY include/ DESTINATION include)

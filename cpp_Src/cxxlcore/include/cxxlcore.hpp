@@ -1,7 +1,7 @@
 /*******************************************************************************
- * cxxlcore.hpp v1.0.1
+ * cxxlcore.hpp v1.0.2
  * 
- * C++ Library Core
+ * CxxlMan3 Core
  * 
  * Author: CxxlMan
  * Date: 2025 -

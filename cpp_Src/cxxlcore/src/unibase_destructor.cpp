@@ -16,7 +16,9 @@ namespace CXXL
     // 要能快速循序取出和剔除
     std::list<IDestroyable *> g_UniBaseSet_fFlag;
 
-    // 放棄共用處理器
+    /**
+     * 放棄共用處理器
+    **/
     class UniBaseDestructor
     {
         // 建立一個獨立的執行緒，專門處理放棄共用
