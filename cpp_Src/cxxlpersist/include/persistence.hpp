@@ -12,11 +12,13 @@
 #include <memory>
 
 #include "cxxlpersist.hpp"
+#include "uniptr.hpp"
 
 namespace CXXL
 {
 
     class Persistable;
+    class IPersistStorage;
 
     // 在此宣告一些 private 類別
     class PersistResourcePrivate
@@ -24,9 +26,19 @@ namespace CXXL
         // Persistable 的真正實作基底類別
         class _Persistable
         {
+        public:
+            virtual ~_Persistable() {}
         };
 
+        class _PersistStorage
+        {
+        public:
+            virtual ~_PersistStorage() {}
+        };
+
+
         friend class Persistable;
+        friend class IPersistStorage;
     };
 
     // Persistable 執行永緒儲存的序列化介面
@@ -34,6 +46,20 @@ namespace CXXL
     {
     public:
         virtual ~ISerializable() {}
+
+        // 序列化函數，存取同型，可用 type() 來判別
+        // 只有在 LOAD 型態，回傳值才有意義，若有一個失敗 Persistable::doPersist() 就
+        // 就應回傳 false
+        virtual bool cxxlFASTCALL operator()(int8_t *p, size_t count) = 0;
+        virtual bool cxxlFASTCALL operator()(int16_t *p, size_t count) = 0;
+        virtual bool cxxlFASTCALL operator()(int32_t *p, size_t count) = 0;
+        virtual bool cxxlFASTCALL operator()(int64_t *p, size_t count) = 0;
+        virtual bool cxxlFASTCALL operator()(uint8_t *p, size_t count) = 0;
+        virtual bool cxxlFASTCALL operator()(uint16_t *p, size_t count) = 0;
+        virtual bool cxxlFASTCALL operator()(uint32_t *p, size_t count) = 0;
+        virtual bool cxxlFASTCALL operator()(uint64_t *p, size_t count) = 0;
+        virtual bool cxxlFASTCALL operator()(float *p, size_t count) = 0;
+        virtual bool cxxlFASTCALL operator()(double *p, size_t count) = 0;
         
         // 序列化類型
         enum PersistType
@@ -49,7 +75,8 @@ namespace CXXL
      * 可永久儲存的物件基礎類別
      * 所有需要永久儲存的物件都應該繼承此類別
     **/
-    class Persistable : virtual public PersistResourcePrivate::_Persistable
+    template<UniBaseType T>   
+    class Persistable :virtual public UniBase<T>, virtual public PersistResourcePrivate::_Persistable
     {
     protected:
         // 執行永緒儲存
@@ -66,13 +93,31 @@ namespace CXXL
         
     };
 
+    // Persistable 和子 Persistable 的連接關係
+    template <typename T>
+    class ChildLink
+    {
+    public:
+        // Constructor
+        template <typename H>
+        ChildLink(const UniPtr<T> &child, const H *pHost)
+        {}
+        
+    };
+    
+    
+
     // 容器物件的操作介面
     class IPersistContainer
     {
+    public:
+        virtual ~IPersistContainer() {}
+
+
     };
 
     // 可永久儲存的物件的儲存體
-    class IPersistStorage
+    class IPersistStorage:virtual public PersistResourcePrivate::_PersistStorage
     {
 
     protected:

@@ -7,6 +7,17 @@ namespace CXXL
     class PersistStorage:public IPersistStorage
     {
         std::shared_ptr<IPersistContainer> m_container_ptr;
+
+        virtual bool cxxlFASTCALL save(Persistable *pPersistable) override
+        {
+            
+        }
+
+        virtual bool cxxlFASTCALL load(Persistable *pPersistable) override
+        {
+            
+        }
+
     public:
         // Constructor
         PersistStorage(const std::shared_ptr<IPersistContainer> &container) 
