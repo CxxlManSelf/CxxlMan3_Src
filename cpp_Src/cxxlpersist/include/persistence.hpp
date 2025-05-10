@@ -3,6 +3,11 @@
  * 
  * CxxlMan3 採用的永續儲存標準介面約定
  * 
+ * IPersistable   提供物件的永續儲存功能
+ * ChildLink      IPersistable 可含有子 IPersistable，但要用 ChildLink 來連接
+ * ISerializable  IPersistable 永續儲存的存取介面
+ *  
+ * 
  * Author: CxxlMan
  * Date: 2025 -
 ******************************************************************************/
@@ -13,41 +18,38 @@
 
 #include "cxxlpersist.hpp"
 #include "uniptr.hpp"
+#include "persist_storage.hpp"
 
 namespace CXXL
 {
 
-    class Persistable;
-    class IPersistStorage;
+    template<UniBaseType T>
+    class IPersistable;
 
     // 在此宣告一些 private 類別
     class PersistResourcePrivate
     {
         // Persistable 的真正實作基底類別
-        class _Persistable
+        class _Persistable: public IPersistChannel
         {
         public:
             virtual ~_Persistable() {}
         };
 
-        class _PersistStorage
-        {
-        public:
-            virtual ~_PersistStorage() {}
-        };
 
-
-        friend class Persistable;
-        friend class IPersistStorage;
+        template<UniBaseType T>
+        friend class IPersistable;
     };
 
     // Persistable 執行永緒儲存的序列化介面
+    // 實作分為 SAVE 與 LOAD 兩種型態
     class ISerializable
     {
     public:
         virtual ~ISerializable() {}
 
         // 序列化函數，存取同型，可用 type() 來判別
+        // 在 SAVE 型態，回傳值為 true
         // 只有在 LOAD 型態，回傳值才有意義，若有一個失敗 Persistable::doPersist() 就
         // 就應回傳 false
         virtual bool cxxlFASTCALL operator()(int8_t *p, size_t count) = 0;
@@ -76,7 +78,7 @@ namespace CXXL
      * 所有需要永久儲存的物件都應該繼承此類別
     **/
     template<UniBaseType T>   
-    class Persistable :virtual public UniBase<T>, virtual public PersistResourcePrivate::_Persistable
+    class IPersistable :virtual public UniBase<T>, virtual public PersistResourcePrivate::_Persistable
     {
     protected:
         // 執行永緒儲存
@@ -85,15 +87,15 @@ namespace CXXL
 
     public:
         // Constructor
-        Persistable() = default;
+        IPersistable() = default;
 
         // Destructor
-        virtual ~Persistable() {}
+        virtual ~IPersistable() {}
 
         
     };
 
-    // Persistable 和子 Persistable 的連接關係
+    // IPersistable 和子 IPersistable 的連接關係
     template <typename T>
     class ChildLink
     {
@@ -107,40 +109,6 @@ namespace CXXL
     
     
 
-    // 容器物件的操作介面
-    class IPersistContainer
-    {
-    public:
-        virtual ~IPersistContainer() {}
-
-
-    };
-
-    // 可永久儲存的物件的儲存體
-    class IPersistStorage:virtual public PersistResourcePrivate::_PersistStorage
-    {
-
-    protected:
-        // Constructor
-        IPersistStorage() = default;
-
-
-    public:
-
-        // Destructor
-        virtual ~IPersistStorage() {}
-
-        // 保存永緒儲存物件的資料
-        virtual bool cxxlFASTCALL save(Persistable *pPersistable) = 0;
-
-        // 取回永緒儲存物件的資料
-        // 注意！若失敗，pPersistable 的資料會毀損
-        virtual bool cxxlFASTCALL load(Persistable *pPersistable) = 0;
-    };
-
-    // 取得 IPersistStorage 的預設實作
-    std::shared_ptr<IPersistStorage> cxxlFASTCALL
-    CXXLPERSIST_DLLEXPORT defaultPersistStorage(const std::shared_ptr<IPersistContainer> &container);
 }
 
 #endif // __CXXLPERSIST_PERSISTENCE_HPP_CxxlMan3
