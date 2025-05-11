@@ -1,5 +1,5 @@
 /***********************************************************
- * treenode.hpp 1.0.0
+ * treenode.hpp 1.0.1
  *
  * 一個階層式的樹狀容器，每個節點可以包含一個物件，和它
  * 之下不限數量的子容器
@@ -24,9 +24,10 @@ namespace CXXL
         std::list<std::shared_ptr<TreeNode<T>>> m_children; // 子節點列表
     public:
         // 建構函式
-        explicit TreeNode(const T &value, const std::u8string &name = u8"") 
+        explicit TreeNode(const T &value, const std::u8string &name = u8"")
             : m_data(value), m_name(name)
-        {}
+        {
+        }
 
         // 取得節點資料
         T &getData() { return m_data; }
@@ -51,6 +52,26 @@ namespace CXXL
             return nullptr;
         }
 
+        // 尋找 child 節點之後特定值的子節點
+        std::shared_ptr<TreeNode<T>> findChildByValue(const std::shared_ptr<TreeNode<T>> &child, 
+            const T &value) const
+        {
+            auto it = std::find(m_children.begin(), m_children.end(), child);
+            if (it == m_children.end())
+            {
+                return nullptr;
+            }
+            
+            for (++it; it != m_children.end(); ++it)
+            {
+                if ((*it)->getData() == value)
+                {
+                    return *it;
+                }
+            }
+            return nullptr;
+        }
+
         // 尋找特定名稱的子節點
         std::shared_ptr<TreeNode<T>> findChildByName(const std::u8string &name) const
         {
@@ -59,6 +80,26 @@ namespace CXXL
                 if (child->getName() == name)
                 {
                     return child;
+                }
+            }
+            return nullptr;
+        }
+
+        // 尋找 child 節點之後特定名稱的子節點
+        std::shared_ptr<TreeNode<T>> findChildByName(const std::shared_ptr<TreeNode<T>> &child, 
+            const std::u8string &name) const
+        {
+            auto it = std::find(m_children.begin(), m_children.end(), child);
+            if (it == m_children.end())
+            {
+                return nullptr;
+            }
+            
+            for (++it; it != m_children.end(); ++it)
+            {
+                if ((*it)->getName() == name)
+                {
+                    return *it;
                 }
             }
             return nullptr;
