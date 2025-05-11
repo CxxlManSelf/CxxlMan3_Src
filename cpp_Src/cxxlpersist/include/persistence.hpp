@@ -15,6 +15,7 @@
 #define __CXXLPERSIST_PERSISTENCE_HPP_CxxlMan3
 
 #include <memory>
+#include <list>
 
 #include "cxxlpersist.hpp"
 #include "uniptr.hpp"
@@ -29,13 +30,31 @@ namespace CXXL
     // 在此宣告一些 private 類別
     class PersistResourcePrivate
     {
-        // Persistable 的真正實作基底類別
+        class _ChildLink;
+
+        // Persistable 的基底類別
+        // 負責和儲存體溝通
         class _Persistable: public IPersistChannel
         {
+            std::list<_ChildLink *> m_childLinks; // 子物件集合
         public:
             virtual ~_Persistable() {}
+
+            friend class _ChildLink;
         };
 
+        class _ChildLink
+        {
+            _Persistable *m_pPersistable; // 包裹子物件
+
+        public:
+            _ChildLink(_Persistable *persistable_ptr, _Persistable *pHost) 
+                : m_pPersistable(persistable_ptr) 
+            {
+                pHost->m_childLinks.push_back(this);
+            }
+            virtual ~_ChildLink() {}
+        };
 
         template<UniBaseType T>
         friend class IPersistable;
@@ -97,12 +116,12 @@ namespace CXXL
 
     // IPersistable 和子 IPersistable 的連接關係
     template <typename T>
-    class ChildLink
+    class ChildLink: public PersistResourcePrivate::_ChildLink
     {
     public:
         // Constructor
         template <typename H>
-        ChildLink(const UniPtr<T> &child, const H *pHost)
+        ChildLink(const UniPtr<T> &child, const H *pHost)        
         {}
         
     };
