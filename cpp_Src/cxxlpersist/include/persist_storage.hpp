@@ -35,6 +35,12 @@ namespace CXXL
 
     };
 
+    // 繼承自 IPersistStorage 的簡易版實作類別
+    class LitePersistStorage : public IPersistStorage
+    {
+        
+    }
+
     // 取得 IPersistStorage 的預設實作
     std::shared_ptr<IPersistStorage> cxxlFASTCALL
     CXXLPERSIST_DLLEXPORT defaultPersistStorage(const std::shared_ptr<IPersistContainer> &container);
