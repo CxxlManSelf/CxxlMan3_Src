@@ -1,5 +1,5 @@
 /***********************************************************
- * threenode.hpp 0.1.0
+ * treenode.hpp 1.0.0
  *
  * 一個階層式的樹狀容器，每個節點可以包含一個物件，和它
  * 之下不限數量的子容器
@@ -7,22 +7,26 @@
  * Author: CxxlMan
  * Date: 2025-
  ************************************************************/
-#ifndef __CXXLCOMMON_THREENODE_HPP_CxxlMan3
-#define __CXXLCOMMON_THREENODE_HPP_CxxlMan3
+#ifndef __CXXLCOMMON_TREENODE_HPP_CxxlMan3
+#define __CXXLCOMMON_TREENODE_HPP_CxxlMan3
 
 #include <list>
 #include <memory>
+#include <string>
 
 namespace CXXL
 {
     template <typename T>
-    class ThreeNode
+    class TreeNode
     {
+        const std::u8string m_name;                         // 節點名稱
         T m_data;                                           // 節點資料
         std::list<std::shared_ptr<TreeNode<T>>> m_children; // 子節點列表
     public:
         // 建構函式
-        explicit TreeNode(const T &value) : m_data(value) {}
+        explicit TreeNode(const T &value, const std::u8string &name = u8"") 
+            : m_data(value), m_name(name)
+        {}
 
         // 取得節點資料
         T &getData() { return m_data; }
@@ -31,12 +35,28 @@ namespace CXXL
         // 設定節點資料
         void setData(const T &value) { m_data = value; }
 
+        // 取得節點名稱
+        const std::u8string &getName() const { return m_name; }
+
         // 尋找特定值的子節點
-        std::shared_ptr<TreeNode<T>> findChild(const T &value) const
+        std::shared_ptr<TreeNode<T>> findChildByValue(const T &value) const
         {
             for (const auto &child : m_children)
             {
                 if (child->getData() == value)
+                {
+                    return child;
+                }
+            }
+            return nullptr;
+        }
+
+        // 尋找特定名稱的子節點
+        std::shared_ptr<TreeNode<T>> findChildByName(const std::u8string &name) const
+        {
+            for (const auto &child : m_children)
+            {
+                if (child->getName() == name)
                 {
                     return child;
                 }
@@ -118,4 +138,4 @@ namespace CXXL
         }
     };
 } // namespace CXXL
-#endif // __CXXLCOMMON_THREENODE_HPP_CxxlMan3
+#endif // __CXXLCOMMON_TREENODE_HPP_CxxlMan3
