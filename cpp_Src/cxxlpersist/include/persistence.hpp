@@ -60,37 +60,6 @@ namespace CXXL
         friend class IPersistable;
     };
 
-    // Persistable 執行永緒儲存的序列化介面
-    // 實作分為 SAVE 與 LOAD 兩種型態
-    class ISerializable
-    {
-    public:
-        virtual ~ISerializable() {}
-
-        // 序列化函數，存取同型，可用 type() 來判別
-        // 在 SAVE 型態，回傳值為 true
-        // 只有在 LOAD 型態，回傳值才有意義，若有一個失敗 Persistable::doPersist() 就
-        // 就應回傳 false
-        virtual bool cxxlFASTCALL operator()(int8_t *p, size_t count) = 0;
-        virtual bool cxxlFASTCALL operator()(int16_t *p, size_t count) = 0;
-        virtual bool cxxlFASTCALL operator()(int32_t *p, size_t count) = 0;
-        virtual bool cxxlFASTCALL operator()(int64_t *p, size_t count) = 0;
-        virtual bool cxxlFASTCALL operator()(uint8_t *p, size_t count) = 0;
-        virtual bool cxxlFASTCALL operator()(uint16_t *p, size_t count) = 0;
-        virtual bool cxxlFASTCALL operator()(uint32_t *p, size_t count) = 0;
-        virtual bool cxxlFASTCALL operator()(uint64_t *p, size_t count) = 0;
-        virtual bool cxxlFASTCALL operator()(float *p, size_t count) = 0;
-        virtual bool cxxlFASTCALL operator()(double *p, size_t count) = 0;
-        
-        // 序列化類型
-        enum PersistType
-        {
-            SAVE,
-            LOAD
-        };
-
-        virtual PersistType cxxlFASTCALL type() const = 0;
-    };
 
     /**
      * 可永久儲存的物件基礎類別
@@ -102,7 +71,7 @@ namespace CXXL
     protected:
         // 執行永緒儲存
         virtual bool cxxlFASTCALL
-        doPersist(ISerializable *pSerializable) = 0;
+        doPersist(ISerialize *pSerialize) = 0;
 
     public:
         // Constructor
