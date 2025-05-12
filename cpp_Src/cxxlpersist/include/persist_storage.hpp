@@ -48,13 +48,13 @@ namespace CXXL
         // 在 SAVE 型態，回傳值為 true
         // 只有在 LOAD 型態，回傳值才有意義，若有一個失敗 Persistable::doPersist() 就
         // 就應回傳 false
-        virtual bool cxxlFASTCALL operator()(int8_t *p, size_t count) = 0;
-        virtual bool cxxlFASTCALL operator()(int16_t *p, size_t count) = 0;
-        virtual bool cxxlFASTCALL operator()(int32_t *p, size_t count) = 0;
-        virtual bool cxxlFASTCALL operator()(int64_t *p, size_t count) = 0;
-        virtual bool cxxlFASTCALL operator()(uint8_t *p, size_t count) = 0;
-        virtual bool cxxlFASTCALL operator()(uint16_t *p, size_t count) = 0;
-        virtual bool cxxlFASTCALL operator()(uint32_t *p, size_t count) = 0;
+        virtual bool cxxlFASTCALL operator()(std::int8_t *p, size_t count) = 0;
+        virtual bool cxxlFASTCALL operator()(std::int16_t *p, size_t count) = 0;
+        virtual bool cxxlFASTCALL operator()(std::int32_t *p, size_t count) = 0;
+        virtual bool cxxlFASTCALL operator()(std::int64_t *p, size_t count) = 0;
+        virtual bool cxxlFASTCALL operator()(std::uint8_t *p, size_t count) = 0;
+        virtual bool cxxlFASTCALL operator()(std::uint16_t *p, size_t count) = 0;
+        virtual bool cxxlFASTCALL operator()(std::uint32_t *p, size_t count) = 0;
         virtual bool cxxlFASTCALL operator()(std::uint64_t *p, size_t count) = 0;
         virtual bool cxxlFASTCALL operator()(std::float32_t *p, size_t count) = 0;
         virtual bool cxxlFASTCALL operator()(std::float64_t *p, size_t count) = 0;
