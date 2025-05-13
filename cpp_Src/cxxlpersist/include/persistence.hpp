@@ -63,13 +63,13 @@ namespace CXXL
 
     /**
      * 可永久儲存的物件基礎類別
-     * 所有需要永久儲存的物件都應該繼承此類別
+     * 所有需要永續儲存的物件都應該繼承此類別
     **/
     template<UniBaseType T>   
     class IPersistable :virtual public UniBase<T>, virtual public PersistResourcePrivate::_Persistable
     {
     protected:
-        // 執行永緒儲存
+        // 執行永續儲存
         virtual bool cxxlFASTCALL
         doPersist(ISerialize *pSerialize) = 0;
 

@@ -6,7 +6,7 @@
  *
  * Author: CxxlMan
  * Date: 2025-
- ************************************************************/
+************************************************************/
 #ifndef __CXXLCOMMON_TREENODE_HPP_CxxlMan3
 #define __CXXLCOMMON_TREENODE_HPP_CxxlMan3
 
@@ -168,8 +168,8 @@ namespace CXXL
             return m_children;
         }
 
-        // 遍歷整棵樹
-        void traverse(const std::function<void(const TreeNode<T> &, int)> &callback, int depth = 0) const
+        // 遍歷整棵樹(深度優先)
+        void traverse(const std::function<void(const TreeNode<T> &, size_t)> &callback, size_t depth = 0) const
         {
             callback(*this, depth);
             for (const auto &child : m_children)

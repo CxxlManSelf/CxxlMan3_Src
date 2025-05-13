@@ -1,7 +1,7 @@
 /*****************************************************************************
  * persist_storage.hpp v0.1.0
  *
- * IPersistStorage  IPersistable 的永續儲存資料保存與讀取
+ * IPersistable 的永續資料儲存體的標準介面
  *
  * author: CxxlMan
  * date: 2025 -
@@ -9,6 +9,7 @@
 #ifndef __CXXLPERSIST_PERSIST_STORAGE_HPP_CxxlMan3
 #define __CXXLPERSIST_PERSIST_STORAGE_HPP_CxxlMan3
 
+#include <cstdint>
 #include <stdfloat>
 #include <list>
 
@@ -37,7 +38,7 @@ namespace CXXL
         virtual ~IChildLinkChannel() {}
     };
 
-    // Persistable 執行永緒儲存的序列化介面
+    // Persistable 執行永續儲存的序列化介面
     // 實作分為 SAVE 與 LOAD 兩種型態
     class ISerialize
     {
@@ -70,16 +71,16 @@ namespace CXXL
         virtual SerializeType cxxlFASTCALL type() const = 0;
     };
 
-    // 永緒儲存資料保存與讀取
+    // 永續資料儲存體的介面
     class IPersistStorage
     {
     public:
         virtual ~IPersistStorage() {}
 
-        // 保存永緒儲存物件的資料
+        // 保存永續儲存物件的資料
         virtual bool cxxlFASTCALL save(IPersistChannel *pPersistable) = 0;
 
-        // 取回永緒儲存物件的資料
+        // 取回永續儲存物件的資料
         // 注意！若失敗，pPersistable 的資料會毀損
         virtual bool cxxlFASTCALL load(IPersistChannel *pPersistable) = 0;
     };
