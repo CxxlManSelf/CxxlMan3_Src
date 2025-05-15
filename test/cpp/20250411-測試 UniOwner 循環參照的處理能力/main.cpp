@@ -32,6 +32,7 @@ public:
 
     void cxxlFASTCALL addMyB(const UniPtr<MyClassB> &myB_ptr)
     {
+        std::lock_guard<std::mutex> lock(m_mutex);
         m_myB.setUniBase(myB_ptr);
     }
 };
@@ -62,6 +63,7 @@ public:
     
     void cxxlFASTCALL addMyA(const UniPtr<MyClassA> &myA_ptr)
     {
+        std::lock_guard<std::mutex> lock(m_mutex);
         m_myA.setUniBase(myA_ptr);        
     }
 };
@@ -90,6 +92,7 @@ public:
 
     void cxxlFASTCALL addMyA(const UniPtr<MyClassA> &myA_ptr)
     {
+        std::lock_guard<std::mutex> lock(m_mutex);
         m_myA.setUniBase(myA_ptr);        
     }
 };
