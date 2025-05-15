@@ -1,5 +1,5 @@
 /*****************************************************************
- * ordered_container.hpp v0.1.0
+ * ordered_container.hpp v1.0.0
  *
  * 結合了順序和索引的功能。這個容器使用std::list來維護加入的順序，同時
  * 使用std::unordered_map來存儲物件的位址作為索引。
@@ -25,12 +25,15 @@ namespace CXXL
 
         // 使用std::unordered_map來存儲物件的位址作為索引
         std::unordered_map<T *, typename std::list<T>::iterator> m_map;
+
     public:
         OrderedContainer() {}
         ~OrderedContainer() {}
 
+        using iterator = typename std::list<T>::iterator;
+
         // 加入一個新物件
-        void add(const T &value)
+        void cxxlFASTCALL add(const T &value)
         {
             auto it = m_map.find(&value);
             if (it == m_map.end())
@@ -41,7 +44,7 @@ namespace CXXL
         }
 
         // 刪除一個物件
-        void remove(const T &value)
+        void cxxlFASTCALL remove(const T &value)
         {
             auto it = m_map.find(&value);
             if (it != m_map.end())
@@ -52,17 +55,20 @@ namespace CXXL
         }
 
         // 取得容器中的物件數量
-        size_t size() const 
-        { 
-            return m_orderedList.size(); 
+        size_t size() const
+        {
+            return m_orderedList.size();
         }
 
         // 取得指定索引的物件
-        T &at(size_t index) 
-        { 
-            return m_orderedList.at(index); 
+        T& cxxlFASTCALL at(size_t index)
+        {
+            return m_orderedList.at(index);
         }
 
+        // 迭代器支援       
+        iterator cxxlFASTCALL begin() { return m_orderedList.begin(); }
+        iterator cxxlFASTCALL end() { return m_orderedList.end(); }
     };
 
 } // namespace CXXL

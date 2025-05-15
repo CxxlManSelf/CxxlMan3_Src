@@ -16,6 +16,7 @@
 
 #include <memory>
 #include <list>
+#include <mutex>
 
 #include "cxxlpersist.hpp"
 #include "uniptr.hpp"
@@ -43,9 +44,9 @@ namespace CXXL
             friend class _ChildLink;
         };
 
-        class _ChildLink
+        class _ChildLink: public IChildLinkChannel
         {
-            _Persistable *m_pPersistable; // 包裹子物件
+            _Persistable *m_pPersistable; // 包裹子
 
         public:
             _ChildLink(_Persistable *persistable_ptr, _Persistable *pHost) 
@@ -73,6 +74,9 @@ namespace CXXL
         virtual bool cxxlFASTCALL
         doPersist(ISerialize *pSerialize) = 0;
 
+        // IPersistable 延伸類別須用此 mutex
+        std::mutex persistable_mutex;
+
     public:
         // Constructor
         IPersistable() = default;
@@ -84,17 +88,64 @@ namespace CXXL
     };
 
     // IPersistable 和子 IPersistable 的連接關係
-    template <typename T>
+    template <typename T, typename HOLDER = UniOwner<T> >
     class ChildLink: public PersistResourcePrivate::_ChildLink
     {
+        HOLDER<T> m_child;
+
+        const H *m_pHost;
+
     public:
         // Constructor
         template <typename H>
-        ChildLink(const UniPtr<T> &child, const H *pHost)        
+        ChildLink(const UniPtr<T> &child, const H *pHost)
+            :m_child(
+                pHost,
+                [pHost](HOLDER *pHolder, void *pChk)
+                {
+                    std::lock_guard<std::mutex> lock(pHost->persistable_mutex);
+                    if(pHolder->chkUniBase(pChk))
+                        pHolder->destroy();                    
+                }
+            ),
+            m_pHost(pHost)
         {}
+
+        // Setter
+        // 若成功被加入則回傳 true
+        // 若 child_ptr 被標示為結束共用狀態則不會被加入，改設定為 nullptr，且回傳 false
+        bool cxxlFASTCALL set(const UniPtr<T> &child_ptr)
+        {
+            return m_child.setUniBase(child_ptr);
+        }
+
+        // Getter
+        UniPtr<T> cxxlFASTCALL get() const
+        {
+            return m_child.getUniBase();
+        }
+
+        // 結束持有
+        void cxxlFASTCALL destroy()
+        {
+            m_child.destroy();
+        }
         
     };
     
+    // IPersistable 和子 IPersistable 的連接關係
+    template <typename T, typename HOLDER = UniOwner<T> >
+    class ChildLinkSet: public PersistResourcePrivate::_ChildLink
+    {
+        // 子物件集合
+        OrderedContainer<HOLDER<T>> m_childSet;
+    public:
+        // Constructor
+        template <typename H>
+        ChildLinkSet(const UniPtr<T> &child, const H *pHost)        
+        {}
+        
+    };
     
 
 }

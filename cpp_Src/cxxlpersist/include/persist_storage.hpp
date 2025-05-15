@@ -22,7 +22,7 @@ namespace CXXL
     // IPersistStorage 和 _Persistable 的溝通介面
     class IPersistChannel
     {
-        virtual std::list<IChildLinkChannel *> cxxlFASTCALL getChildLinks() const = 0;
+        virtual std::list<IChildLinkChannel *>& cxxlFASTCALL getChildLinks() const = 0;
         virtual void cxxlFASTCALL lock() = 0;
         virtual void cxxlFASTCALL unlock() = 0;
 
@@ -33,7 +33,8 @@ namespace CXXL
     // IPersistStorage 和 _ChildLink 的溝通介面
     class IChildLinkChannel
     {
-        virtual IPersistChannel *getPersistable() const = 0;
+        
+        virtual std::list<IPersistChannel *> cxxlFASTCALL getPersistable() const = 0;
     public:
         virtual ~IChildLinkChannel() {}
     };
