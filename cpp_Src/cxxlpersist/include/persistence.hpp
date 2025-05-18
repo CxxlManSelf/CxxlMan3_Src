@@ -156,7 +156,7 @@ namespace CXXL
             {
                 std::lock_guard<std::mutex> lock(m_pHost->persistable_mutex);
                 if (pHolder->chkUniBase(pChk))
-                    m_pHost->m_childSet.erase(pHolder);
+                    m_childSet.remove(pHolder->getUniBase());
             }
 
             // 產生一個暫時的 HOLDER
@@ -169,6 +169,17 @@ namespace CXXL
             }
             else
                 return false;
+        }
+
+        // Getter
+        std::list<UniPtr<T> > cxxlFASTCALL get() const
+        {
+            std::list<UniPtr<T> > resultList;
+
+            for(auto it = m_childSet.begin(); it != m_childSet.end(); ++it)
+                resultList.push_back(it->getUniBase());
+
+            return std::move(resultList);
         }
     };
 
