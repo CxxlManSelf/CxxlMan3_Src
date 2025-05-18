@@ -1,5 +1,5 @@
 /***********************************************************
- * treenode.hpp 1.0.1
+ * treenode.hpp 1.0.2
  *
  * 一個階層式的樹狀容器，每個節點可以包含一個物件，和它
  * 之下不限數量的子容器
@@ -13,6 +13,7 @@
 #include <list>
 #include <memory>
 #include <string>
+#include <functional>
 
 namespace CXXL
 {
@@ -136,7 +137,7 @@ namespace CXXL
 
         // 在特定子節點之後插入新節點
         // 若 child 不存在回覆 nullptr
-        std::shared_ptr<TreeNode<T>> insertBefore(const std::shared_ptr<TreeNode<T>> &child, const T &value)
+        std::shared_ptr<TreeNode<T>> insertAfter(const std::shared_ptr<TreeNode<T>> &child, const T &value)
         {
             auto it = std::find(m_children.begin(), m_children.end(), child);
             if (it == m_children.end())

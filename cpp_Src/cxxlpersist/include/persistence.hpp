@@ -181,6 +181,12 @@ namespace CXXL
 
             return std::move(resultList);
         }
+
+        // 清除所有持有
+        void cxxlFASTCALL destroy()
+        {
+            m_childSet.clear();
+        }
     };
 
 }

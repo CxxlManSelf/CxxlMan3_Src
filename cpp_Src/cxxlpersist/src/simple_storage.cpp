@@ -11,4 +11,10 @@ namespace CXXL
         virtual bool cxxlFASTCALL
         load(IPersistChannel *pPersistable) override;
     };
+
+    std::shared_ptr<ISimplePersistContainer> cxxlFASTCALL
+            ISimplePersistContainer_StringTreeNode::create(const std::shared_ptr<TreeNode<std::u8string>> &treeNode_ptr)
+            {
+
+            }
 }

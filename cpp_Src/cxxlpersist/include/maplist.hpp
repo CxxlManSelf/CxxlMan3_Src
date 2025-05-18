@@ -62,6 +62,13 @@ namespace CXXL
             return m_orderedList.size();
         }
 
+        // 清除所有物件
+        void cxxlFASTCALL clear()
+        {
+            m_orderedList.clear();
+            m_map.clear();
+        }
+
         // 迭代器支援       
         iterator cxxlFASTCALL begin() { return m_orderedList.begin(); }
         iterator cxxlFASTCALL end() { return m_orderedList.end(); }

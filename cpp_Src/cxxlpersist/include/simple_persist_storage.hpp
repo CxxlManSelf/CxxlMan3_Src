@@ -30,71 +30,71 @@ namespace CXXL
 
         // 儲存
         virtual void cxxlFASTCALL
-        save(std::int8_t *p, size_t count) = 0;
+        save(std::int8_t *p, size_t count, const std::u8string &name) = 0;
 
         virtual void cxxlFASTCALL
-        save(std::int16_t *p, size_t count) = 0;
+        save(std::int16_t *p, size_t count, const std::u8string &name) = 0;
 
         virtual void cxxlFASTCALL
-        save(std::int32_t *p, size_t count) = 0;
+        save(std::int32_t *p, size_t count, const std::u8string &name) = 0;
 
         virtual void cxxlFASTCALL
-        save(std::int64_t *p, size_t count) = 0;
+        save(std::int64_t *p, size_t count, const std::u8string &name) = 0;
 
         virtual void cxxlFASTCALL
-        save(std::uint8_t *p, size_t count) = 0;
+        save(std::uint8_t *p, size_t count, const std::u8string &name) = 0;
 
         virtual void cxxlFASTCALL
-        save(std::uint16_t *p, size_t count) = 0;
+        save(std::uint16_t *p, size_t count, const std::u8string &name) = 0;
 
         virtual void cxxlFASTCALL
-        save(std::uint32_t *p, size_t count) = 0;
+        save(std::uint32_t *p, size_t count, const std::u8string &name) = 0;
 
         virtual void cxxlFASTCALL
-        save(std::uint64_t *p, size_t count) = 0;
+        save(std::uint64_t *p, size_t count, const std::u8string &name) = 0;
 
         virtual void cxxlFASTCALL
-        save(std::float32_t *p, size_t count) = 0;
+        save(std::float32_t *p, size_t count, const std::u8string &name) = 0;
 
         virtual void cxxlFASTCALL
-        save(std::float64_t *p, size_t count) = 0;
+        save(std::float64_t *p, size_t count, const std::u8string &name) = 0;
 
         virtual void cxxlFASTCALL
-        save(std::float128_t *p, size_t count) = 0;
+        save(std::float128_t *p, size_t count, const std::u8string &name) = 0;
 
         // 讀取
         virtual bool cxxlFASTCALL
-        load(std::int8_t *p, size_t count) = 0;
+        load(std::int8_t *p, size_t count, const std::u8string &name) = 0;
 
         virtual bool cxxlFASTCALL
-        load(std::int16_t *p, size_t count) = 0;
+        load(std::int16_t *p, size_t count, const std::u8string &name) = 0;
 
         virtual bool cxxlFASTCALL
-        load(std::int32_t *p, size_t count) = 0;
+        load(std::int32_t *p, size_t count, const std::u8string &name) = 0;
 
         virtual bool cxxlFASTCALL
-        load(std::int64_t *p, size_t count) = 0;
+        load(std::int64_t *p, size_t count, const std::u8string &name) = 0;
 
         virtual bool cxxlFASTCALL
-        load(std::uint8_t *p, size_t count) = 0;
+        load(std::uint8_t *p, size_t count, const std::u8string &name) = 0;
 
         virtual bool cxxlFASTCALL
-        load(std::uint16_t *p, size_t count) = 0;
+        load(std::uint16_t *p, size_t count, const std::u8string &name) = 0;
 
         virtual bool cxxlFASTCALL
-        load(std::uint32_t *p, size_t count) = 0;
+        load(std::uint32_t *p, size_t count, const std::u8string &name) = 0;
 
         virtual bool cxxlFASTCALL
-        load(std::uint64_t *p, size_t count) = 0;
+        load(std::uint64_t *p, size_t count, const std::u8string &name) = 0;
 
         virtual bool cxxlFASTCALL
-        load(std::float32_t *p, size_t count) = 0;
+        load(std::float32_t *p, size_t count, const std::u8string &name) = 0;
 
         virtual bool cxxlFASTCALL
-        load(std::float64_t *p, size_t count) = 0;
+        load(std::float64_t *p, size_t count, const std::u8string &name) = 0;
 
         virtual bool cxxlFASTCALL
-        load(std::float128_t *p, size_t count) = 0;
+        load(std::float128_t *p, size_t count, const std::u8string &name) = 0;
     };
 
     // 提供一個包裹 TreeNode<std::string> 的 ISimplePersistContainer 容器實作
@@ -109,9 +109,9 @@ namespace CXXL
         // 取得 TreeNode<std::string>
         virtual std::shared_ptr<TreeNode<std::string>> cxxlFASTCALL getTreeNode() const = 0;
 
-        static std::shared_ptr<ISimplePersistContainer>
-            CXXLPERSIST_DLLEXPORT create(const std::shared_ptr<TreeNode<std::string>> &treeNode_ptr =
-                                             std::make_shared<TreeNode<std::string>>());
+        static std::shared_ptr<ISimplePersistContainer> CXXLPERSIST_DLLEXPORT 
+        cxxlFASTCALL create(const std::shared_ptr<TreeNode<std::u8string>> &treeNode_ptr =
+            std::make_shared<TreeNode<std::u8string> >(std::u8string()));
     };
 
 
