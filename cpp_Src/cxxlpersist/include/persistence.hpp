@@ -29,6 +29,10 @@ namespace CXXL
     template <UniBaseType T>
     class IPersistable;
 
+    template <typename T, typename HOLDER>
+    class ChildLinkSet;
+
+
     // 在此宣告一些 private 類別
     class PersistResourcePrivate
     {
@@ -38,20 +42,22 @@ namespace CXXL
         // 負責和儲存體溝通
         class _Persistable : public IPersistChannel
         {
-            std::list<_ChildLink *> m_childLinks; // 子物件集合
+            // _ChildLink 集合
+            // 含 0 至 多個
+            std::list<_ChildLink *> m_childLinks; 
         public:
             virtual ~_Persistable() {}
 
             friend class _ChildLink;
         };
 
+        // ChildLinkSet 的基底類別
+        // 上接一個 _Persistable 父物件        
+        // 內含 0 至 多個 _Persistable 子物件        
         class _ChildLink : public IChildLinkChannel
         {
-            _Persistable *m_pPersistable; // 包裹子
-
         public:
-            _ChildLink(_Persistable *persistable_ptr, _Persistable *pHost)
-                : m_pPersistable(persistable_ptr)
+            _ChildLink(_Persistable *pHost)
             {
                 pHost->m_childLinks.push_back(this);
             }
@@ -60,17 +66,24 @@ namespace CXXL
 
         template <UniBaseType T>
         friend class IPersistable;
+
+        template <typename T, typename HOLDER>
+        friend class ChildLinkSet;
+
     };
 
     /**
      * 可永久儲存的物件基礎類別
      * 所有需要永續儲存的物件都應該繼承此類別
-     **/
-    template <UniBaseType T>
+    **/
+    template <UniBaseType T = UniBaseType::ALL>
     class IPersistable : virtual public UniBase<T>, virtual public PersistResourcePrivate::_Persistable
     {
     protected:
         // 執行永續儲存
+        // pSerialize 可分為 SAVE 與 LOAD 兩型態
+        // 在 SAVE 型態回傳值為 false 表示遇到 null pointer 的情況
+        // 在 LOAD 型態回傳值為 false 表示失敗
         virtual bool cxxlFASTCALL
         doPersist(ISerialize *pSerialize) = 0;
 
@@ -85,52 +98,10 @@ namespace CXXL
         virtual ~IPersistable() {}
     };
 
-    // IPersistable 和子 IPersistable 的連接關係
-    template <typename T, typename HOLDER = UniOwner<T>>
-    class ChildLink : public PersistResourcePrivate::_ChildLink
-    {
-        HOLDER<T> m_child;
 
-        const H *m_pHost;
-
-    public:
-        // Constructor
-        template <typename H>
-        ChildLink(const UniPtr<T> &child, const H *pHost)
-            : m_child(
-                  pHost,
-                  [pHost](HOLDER *pHolder, void *pChk)
-                  {
-                      std::lock_guard<std::mutex> lock(pHost->persistable_mutex);
-                      if (pHolder->chkUniBase(pChk))
-                          pHolder->destroy();
-                  }),
-              m_pHost(pHost)
-        {
-        }
-
-        // Setter
-        // 若成功被加入則回傳 true
-        // 若 child_ptr 被標示為結束共用狀態則不會被加入，且回傳 false
-        bool cxxlFASTCALL set(const UniPtr<T> &child_ptr)
-        {
-            return m_child.setUniBase(child_ptr);
-        }
-
-        // Getter
-        UniPtr<T> cxxlFASTCALL get() const
-        {
-            return m_child.getUniBase();
-        }
-
-        // 結束持有
-        void cxxlFASTCALL destroy()
-        {
-            m_child.destroy();
-        }
-    };
-
-    // IPersistable 和子 IPersistable 的連接關係
+    // 一個父 IPersistable 和多個子 IPersistable 的連接關係
+    // 用於包含 0 至多個子 IPersistable 延伸類別
+    // 注意：若包含有 null 將不能被永續儲存
     template <typename T, typename HOLDER = UniOwner<T>>
     class ChildLinkSet : public PersistResourcePrivate::_ChildLink
     {
@@ -143,7 +114,8 @@ namespace CXXL
         // Constructor
         template <typename H>
         ChildLinkSet(const UniPtr<T> &child, const H *pHost)
-            : m_pHost(pHost)
+            :_ChildLink(pHost),
+             m_pHost(pHost)
         {
         }
 
@@ -182,7 +154,7 @@ namespace CXXL
             return std::move(resultList);
         }
 
-        // 清除所有持有
+        // 清除所有子物件
         void cxxlFASTCALL destroy()
         {
             m_childSet.clear();

@@ -30,7 +30,7 @@ namespace CXXL
         virtual ~IPersistChannel() {}
     };
 
-    // IPersistStorage 和 _ChildLink 的溝通介面
+    // 和 _ChildLink 的溝通介面
     class IChildLinkChannel
     {
         
@@ -46,10 +46,11 @@ namespace CXXL
     public:
         virtual ~ISerialize() {}
 
-        // 序列化函數，存取同型，可用 type() 來判別
-        // 在 SAVE 型態，回傳值為 true
-        // 只有在 LOAD 型態，回傳值才有意義，若有一個失敗 Persistable::doPersist() 就
-        // 就應回傳 false
+        // 序列化函數，存取同型可用 type() 來判別
+        // 在 SAVE 型態回傳值為 false 表示遇到 null pointer 的情況
+        // 在 LOAD 型態回傳值為 false 表示失敗，pPersistable 的資料不會改變
+        // 只要有一個失敗 Persistable::doPersist() 就應回傳 false
+        virtual bool cxxlFASTCALL operator()(char8_t *p, size_t count, const std::u8string &name) = 0;
         virtual bool cxxlFASTCALL operator()(std::int8_t *p, size_t count, const std::u8string &name) = 0;
         virtual bool cxxlFASTCALL operator()(std::int16_t *p, size_t count, const std::u8string &name) = 0;
         virtual bool cxxlFASTCALL operator()(std::int32_t *p, size_t count, const std::u8string &name) = 0;
@@ -79,10 +80,10 @@ namespace CXXL
         virtual ~IPersistStorage() {}
 
         // 保存永續儲存物件的資料
+        // 若回傳值為 false 表示失敗，遇到了 pPersistable 有 null pointer 的情況
         virtual bool cxxlFASTCALL save(IPersistChannel *pPersistable) = 0;
 
         // 取回永續儲存物件的資料
-        // 注意！若失敗，pPersistable 的資料會毀損
         virtual bool cxxlFASTCALL load(IPersistChannel *pPersistable) = 0;
     };
 
