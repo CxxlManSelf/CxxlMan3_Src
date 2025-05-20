@@ -26,7 +26,6 @@
 namespace CXXL
 {
 
-    template <UniBaseType T>
     class IPersistable;
 
     template <typename T, typename HOLDER>
@@ -64,7 +63,6 @@ namespace CXXL
             virtual ~_ChildLink() {}
         };
 
-        template <UniBaseType T>
         friend class IPersistable;
 
         template <typename T, typename HOLDER>
@@ -76,16 +74,20 @@ namespace CXXL
      * 可永久儲存的物件基礎類別
      * 所有需要永續儲存的物件都應該繼承此類別
     **/
-    template <UniBaseType T = UniBaseType::ALL>
-    class IPersistable : virtual public UniBase<T>, virtual public PersistResourcePrivate::_Persistable
+    class IPersistable : virtual public UniBase<UniBaseType::ALL>, virtual public PersistResourcePrivate::_Persistable
     {
     protected:
-        // 執行永續儲存
-        // pSerialize 可分為 SAVE 與 LOAD 兩型態
-        // 在 SAVE 型態回傳值為 false 表示遇到 null pointer 的情況
-        // 在 LOAD 型態回傳值為 false 表示失敗
+        // 執行 Save 永續儲存
+        // 回傳值為 false 表示遇到 null pointer 的情況
+        // 只要有一個失敗就應回傳 false
         virtual bool cxxlFASTCALL
-        doPersist(ISerialize *pSerialize) = 0;
+        Save(ISerializeSave *pSerialize) = 0;
+
+        // 執行 Load 永續儲存
+        // 回傳值為 false 表示失敗，pPersistable 的資料不會改變
+        // 只要有一個失敗就應回傳 false
+        virtual bool cxxlFASTCALL
+        Load(ISerializeLoad *pSerialize) = 0;
 
         // IPersistable 延伸類別須用此 mutex
         std::mutex persistable_mutex;
@@ -120,8 +122,9 @@ namespace CXXL
         }
 
         // Setter
-        // 若成功被加入則回傳 true
         // 若 child_ptr 被標示為結束共用狀態則不會被加入，且回傳 false
+        // 同一個物件只能被放入一次
+        // 若要當作單一子物件的連接，應先執行 destroy() 後再使用
         bool cxxlFASTCALL set(const UniPtr<T> &child_ptr)
         {
             auto detachUniBaseFunc = [m_pHost](HOLDER *pHolder, void *pChk)

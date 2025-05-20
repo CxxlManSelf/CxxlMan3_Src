@@ -30,6 +30,9 @@ namespace CXXL
 
         // 儲存
         virtual void cxxlFASTCALL
+        save(char8_t *p, size_t count, const std::u8string &name) = 0;
+
+        virtual void cxxlFASTCALL
         save(std::int8_t *p, size_t count, const std::u8string &name) = 0;
 
         virtual void cxxlFASTCALL
@@ -64,6 +67,9 @@ namespace CXXL
 
         // 讀取
         virtual bool cxxlFASTCALL
+        load(char8_t *p, size_t count, const std::u8string &name) = 0;
+
+        virtual bool cxxlFASTCALL
         load(std::int8_t *p, size_t count, const std::u8string &name) = 0;
 
         virtual bool cxxlFASTCALL
@@ -97,7 +103,7 @@ namespace CXXL
         load(std::float128_t *p, size_t count, const std::u8string &name) = 0;
     };
 
-    // 提供一個包裹 TreeNode<std::string> 的 ISimplePersistContainer 容器實作
+    // 提供一個包裹 TreeNode<std::u8string> 的 ISimplePersistContainer 容器實作
     class ISimplePersistContainer_StringTreeNode : public ISimplePersistContainer
     {
     protected:

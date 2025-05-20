@@ -39,17 +39,36 @@ namespace CXXL
         virtual ~IChildLinkChannel() {}
     };
 
-    // Persistable 執行永續儲存的序列化介面
-    // 實作分為 SAVE 與 LOAD 兩種型態
-    class ISerialize
+    // Persistable 執行永續儲存的 Save 序列化介面
+    class ISerializeSave
     {
     public:
-        virtual ~ISerialize() {}
+        virtual ~ISerializeSave() {}
 
-        // 序列化函數，存取同型可用 type() 來判別
-        // 在 SAVE 型態回傳值為 false 表示遇到 null pointer 的情況
-        // 在 LOAD 型態回傳值為 false 表示失敗，pPersistable 的資料不會改變
-        // 只要有一個失敗 Persistable::doPersist() 就應回傳 false
+        // 回傳值為 false 表示遇到 null pointer 的情況
+        // 只要有一個失敗 IPersistable::Save() 就應回傳 false
+        virtual bool cxxlFASTCALL operator()(char8_t *p, size_t count, const std::u8string &name) = 0;
+        virtual bool cxxlFASTCALL operator()(std::int8_t *p, size_t count, const std::u8string &name) = 0;
+        virtual bool cxxlFASTCALL operator()(std::int16_t *p, size_t count, const std::u8string &name) = 0;
+        virtual bool cxxlFASTCALL operator()(std::int32_t *p, size_t count, const std::u8string &name) = 0;
+        virtual bool cxxlFASTCALL operator()(std::int64_t *p, size_t count, const std::u8string &name) = 0;
+        virtual bool cxxlFASTCALL operator()(std::uint8_t *p, size_t count, const std::u8string &name) = 0;
+        virtual bool cxxlFASTCALL operator()(std::uint16_t *p, size_t count, const std::u8string &name) = 0;
+        virtual bool cxxlFASTCALL operator()(std::uint32_t *p, size_t count, const std::u8string &name) = 0;
+        virtual bool cxxlFASTCALL operator()(std::uint64_t *p, size_t count, const std::u8string &name) = 0;
+        virtual bool cxxlFASTCALL operator()(std::float32_t *p, size_t count, const std::u8string &name) = 0;
+        virtual bool cxxlFASTCALL operator()(std::float64_t *p, size_t count, const std::u8string &name) = 0;
+        virtual bool cxxlFASTCALL operator()(std::float128_t *p, size_t count, const std::u8string &name) = 0;
+    };
+
+    // Persistable 執行永續儲存的 Load 序列化介面
+    class ISerializeLoad
+    {
+    public:
+        virtual ~ISerializeLoad() {}
+
+        // 回傳值為 false 表示失敗，pPersistable 的資料不會改變
+        // 只要有一個失敗 IPersistable::Load() 就應回傳 false
         virtual bool cxxlFASTCALL operator()(char8_t *p, size_t count, const std::u8string &name) = 0;
         virtual bool cxxlFASTCALL operator()(std::int8_t *p, size_t count, const std::u8string &name) = 0;
         virtual bool cxxlFASTCALL operator()(std::int16_t *p, size_t count, const std::u8string &name) = 0;
@@ -63,14 +82,6 @@ namespace CXXL
         virtual bool cxxlFASTCALL operator()(std::float64_t *p, size_t count, const std::u8string &name) = 0;
         virtual bool cxxlFASTCALL operator()(std::float128_t *p, size_t count, const std::u8string &name) = 0;
         
-        // 序列化類型
-        enum SerializeType
-        {
-            SAVE,
-            LOAD
-        };
-
-        virtual SerializeType cxxlFASTCALL type() const = 0;
     };
 
     // 永續資料儲存體的介面
@@ -84,6 +95,7 @@ namespace CXXL
         virtual bool cxxlFASTCALL save(IPersistChannel *pPersistable) = 0;
 
         // 取回永續儲存物件的資料
+        // 若回傳值為 false 表示失敗
         virtual bool cxxlFASTCALL load(IPersistChannel *pPersistable) = 0;
     };
 
