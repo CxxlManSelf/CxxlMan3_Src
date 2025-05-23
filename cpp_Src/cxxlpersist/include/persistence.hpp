@@ -41,13 +41,60 @@ namespace CXXL
         // 負責和儲存體溝通
         class _Persistable : public IPersistChannel
         {
+            // Save 序列化狀態:
+            //  0: 未序列化
+            //  1: mutex 鎖定中
+            //  2: 完成序列化 Save            
+            //  3: 失敗
+            // 不管成功失敗都會 mutex 解除鎖定，並將 m_SerializeState 設為 0
+            //
+            // Load 序列化狀態:
+            //  0: 未序列化
+            //  1: mutex 鎖定中
+            //  2: Load 檢查成功
+            //  3: Load 檢查失敗
+            //  4: 完成序列化 Load
+            // 不管成功失敗都會 mutex 解除鎖定，並將 m_SerializeState 設為 0            
+            int8_t m_SerializeState = 0;
+
+            // 若已 lock 過了回覆 false
+            bool cxxlFASTCALL lockMutex() override fi // class IPersistChannel
+            {
+                persistable_mutex.lock();
+                if(m_SerializeState != 0)
+                {
+                    persistable_mutex.unlock();
+                    return false;
+                }
+                else
+                    return true;
+            }
+
+            // 若未 lock 過了回覆 false
+            bool cxxlFASTCALL unlockMutex() override final // class IPersistChannel
+            {                
+                if(m_SerializeState != 0)
+                {
+                    m_SerializeState = 0;
+                    persistable_mutex.unlock();
+                    return true;
+                }
+                else
+                    return false;
+            }
+
+
             // _ChildLink 集合
             // 含 0 至 多個
             std::list<_ChildLink *> m_childLinks; 
+
+            std::recursive_mutex persistable_mutex;
+
         public:
             virtual ~_Persistable() {}
 
             friend class _ChildLink;
+            friend class IPersistable;
         };
 
         // ChildLinkSet 的基底類別
@@ -61,6 +108,8 @@ namespace CXXL
                 pHost->m_childLinks.push_back(this);
             }
             virtual ~_ChildLink() {}
+
+            
         };
 
         friend class IPersistable;
@@ -90,7 +139,8 @@ namespace CXXL
         Load(ISerializeLoad *pSerialize) = 0;
 
         // IPersistable 延伸類別須用此 mutex
-        std::mutex persistable_mutex;
+        // 是一個 std::recursive_mutex
+        using PersistResourcePrivate::_Persistable::persistable_mutex;
 
     public:
         // Constructor

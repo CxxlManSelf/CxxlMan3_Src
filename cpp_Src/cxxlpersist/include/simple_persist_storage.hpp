@@ -141,9 +141,11 @@ namespace CXXL
                 ISimplePersistContainer_StringTreeNode::create());
     };
 
+/*    
     class SimpleSerialize : public ISerialize
     {
     };
+*/    
 
 } // namespace CXXL
 #endif // __CXXLPERSIST_SIMPLE_PERSIST_STORAGE_HPP_CxxlMan3
