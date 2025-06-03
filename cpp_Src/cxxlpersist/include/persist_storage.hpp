@@ -23,8 +23,15 @@ namespace CXXL
     class IPersistChannel
     {
         virtual std::list<IChildLinkChannel *>& cxxlFASTCALL getChildLinks() const = 0;
-        virtual void cxxlFASTCALL lock() = 0;
-        virtual void cxxlFASTCALL unlock() = 0;
+
+        // lock 成功回覆 0
+        // lock 失敗回覆 -1
+        // 已 lock 過了回覆 -2
+        virtual int cxxlFASTCALL lockMutex() = 0;
+
+        // 呼叫端須管控好，lockMutex() 成功才能呼叫
+        virtual void cxxlFASTCALL unlockMutex() = 0;
+
 
     public:
         virtual ~IPersistChannel() {}

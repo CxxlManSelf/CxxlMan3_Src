@@ -58,7 +58,7 @@ namespace CXXL
             int8_t m_SerializeState = 0;
 
             // 若已 lock 過了回覆 false
-            bool cxxlFASTCALL lockMutex() override fi // class IPersistChannel
+            bool cxxlFASTCALL lockMutex() override final // class IPersistChannel
             {
                 persistable_mutex.lock();
                 if(m_SerializeState != 0)
