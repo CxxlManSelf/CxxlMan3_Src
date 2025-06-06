@@ -24,12 +24,14 @@ namespace CXXL
     {
         virtual std::list<IChildLinkChannel *>& cxxlFASTCALL getChildLinks() const = 0;
 
-        // lock 成功回覆 0
-        // lock 失敗回覆 -1
-        // 已 lock 過了回覆 -2
+        // lock 失敗回覆 0
+        // lock 成功回覆 1
+        // 成功又再 lock 一次回覆 2
         virtual int cxxlFASTCALL lockMutex() = 0;
 
-        // 呼叫端須管控好，lockMutex() 成功才能呼叫
+        // 呼叫端須管控好
+        // lockMutex() 成功(回覆非 0)必須呼叫
+        // lockMutex() 失敗絕對不能呼叫
         virtual void cxxlFASTCALL unlockMutex() = 0;
 
 

@@ -57,30 +57,25 @@ namespace CXXL
             // 不管成功失敗都會 mutex 解除鎖定，並將 m_SerializeState 設為 0            
             int8_t m_SerializeState = 0;
 
-            // 若已 lock 過了回覆 false
-            bool cxxlFASTCALL lockMutex() override final // class IPersistChannel
-            {
-                persistable_mutex.lock();
+            // try_lock() 失敗回覆 0
+            // try_lock() 鎖定成功回覆 1
+            // 成功又再 lock 一次回覆 2
+            int cxxlFASTCALL lockMutex() override final // class IPersistChannel
+            {                
+                if(persistable_mutex.try_lock() == false)
+                    return 0;
+
                 if(m_SerializeState != 0)
-                {
-                    persistable_mutex.unlock();
-                    return false;
-                }
+                    return 2;
                 else
-                    return true;
+                    return 1;
             }
 
-            // 若未 lock 過了回覆 false
-            bool cxxlFASTCALL unlockMutex() override final // class IPersistChannel
+            // 呼叫端須管控好，lockMutex() 成功(回覆非 0)才能呼叫
+            void cxxlFASTCALL unlockMutex() override final // class IPersistChannel
             {                
-                if(m_SerializeState != 0)
-                {
-                    m_SerializeState = 0;
-                    persistable_mutex.unlock();
-                    return true;
-                }
-                else
-                    return false;
+                m_SerializeState = 0;
+                persistable_mutex.unlock();
             }
 
 
