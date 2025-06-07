@@ -22,6 +22,7 @@
 #include "uniptr.hpp"
 #include "persist_storage.hpp"
 #include "maplist.hpp"
+#include "locktime.hpp"
 
 namespace CXXL
 {
@@ -61,14 +62,15 @@ namespace CXXL
             // try_lock() 鎖定成功回覆 1
             // 成功又再 lock 一次回覆 2
             int cxxlFASTCALL lockMutex() override final // class IPersistChannel
-            {                
-                if(persistable_mutex.try_lock() == false)
+            {        
+                if(lockTime(persistable_mutex) == false)        
                     return 0;
 
                 if(m_SerializeState != 0)
                     return 2;
-                else
-                    return 1;
+                
+                m_SerializeState = 1;
+                return 1;
             }
 
             // 呼叫端須管控好，lockMutex() 成功(回覆非 0)才能呼叫
