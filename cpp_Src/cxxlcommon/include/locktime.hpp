@@ -24,17 +24,17 @@ namespace CXXL
         std::chrono::microseconds timeout = std::chrono::microseconds(10000), 
         unsigned int retry = 10)
     {
-        const auto startTime = std::chrono::steady_clock::now();
         const auto checkInterval = timeout / retry;    // 每次檢查的間隔
-
-        while (std::chrono::steady_clock::now() - startTime < timeout)
+        const auto startTime = std::chrono::steady_clock::now();
+        
+        do
         {
             if (mutex.try_lock())
                 return true; // 成功鎖定
 
             // 休眠一小段時間，讓出 CPU
             std::this_thread::sleep_for(checkInterval);
-        }
+        }while (std::chrono::steady_clock::now() - startTime < timeout)
 
         return false;
     }
