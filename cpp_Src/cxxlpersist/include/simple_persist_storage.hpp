@@ -1,7 +1,7 @@
 /*****************************************************
  * simple_persist_storage.hpp v1.0.0
  *
- * CxxlMan3 提供的一個簡單 IPersistStorage 實作
+ * CxxlMan3 提供的一個簡易版的 IPersistStorage 實作
  *
  *
  * Author: CxxlMan

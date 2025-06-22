@@ -151,13 +151,15 @@ namespace CXXL
     // 一個父 IPersistable 和多個子 IPersistable 的連接關係
     // 用於包含 0 至多個子 IPersistable 延伸類別
     // 注意：若包含有 null 將不能被永續儲存
-    template <typename T, typename HOLDER = UniOwner<T>>
+    template <typename T>
     class ChildLinkSet : public PersistResourcePrivate::_ChildLink
     {
         // 子物件集合
-        MapList<T, HOLDER> m_childSet;
+        MapList<T, UniOwner<T> > m_childSet;
 
         const H *m_pHost;
+
+        typedef UniOwner<T> Holder;
 
     public:
         // Constructor
@@ -169,14 +171,17 @@ namespace CXXL
         }
 
         // Setter
+        // nullptr 不能被加入
         // 若 child_ptr 被標示為結束共用狀態則不會被加入，且回傳 false
         // 同一個物件只能被放入一次
         // 若要當作單一子物件的連接，應先執行 destroy() 後再使用
         bool cxxlFASTCALL set(const UniPtr<T> &child_ptr)
         {
-            auto detachUniBaseFunc = [m_pHost](HOLDER *pHolder, void *pChk)
+            if(child_ptr == nullptr) return false;
+            
+            auto detachUniBaseFunc = [m_pHost](Holder *pHolder, void *pChk)
             {
-                std::lock_guard<std::mutex> lock(m_pHost->persistable_mutex);
+                std::lock_guard<std::recursive_mutex> lock(m_pHost->persistable_mutex);
                 if (pHolder->chkUniBase(pChk))
                     m_childSet.remove(pHolder->getUniBase());
             }
@@ -184,13 +189,15 @@ namespace CXXL
             // 產生一個暫時的 HOLDER
             HOLDER tmpUniOwner(m_pHost, detachUniBaseFunc);
 
-            if (tmpUniOwner.setUniBase(child_ptr))      // 將 child_ptr 設定給 HOLDER
-            {
-                m_uniOwnerSet.add(std::move(tmpUniOwner)); // 成功才放入容器中
-                return true;
+            // 將 child_ptr 設定給 HOLDER
+            // 成功才放入容器中
+            if (tmpUniOwner.setUniBase(child_ptr))      
+            {                                           
+                if(m_uniOwnerSet.add(std::move(tmpUniOwner)))
+                    return true;
             }
-            else
-                return false;
+
+            return false;
         }
 
         // Getter

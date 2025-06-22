@@ -21,7 +21,7 @@ namespace CXXL
 {
     class ChildLinkSet;
 
-    template <typename T, typename HOLDER>
+    template <typename T, typename HOLDER> // HOLDER 為 UniOwner<T>
     class MapList
     {
         // 使用std::list來維護加入的順序
@@ -33,7 +33,8 @@ namespace CXXL
         using iterator = typename std::list<HOLDER>::iterator;
 
         // 加入一個新物件
-        void cxxlFASTCALL add(const HOLDER &&holder)
+        // 同一個物件只能加入一次
+        bool cxxlFASTCALL add(const HOLDER &&holder)
         {
             auto uniBase_ptr = holder.getUniBase();
             T *pUniBase = (T *)uniBase_ptr.get();
@@ -42,7 +43,10 @@ namespace CXXL
             {
                 m_orderedList.push_back(value);
                 m_map[&m_orderedList.back()] = std::prev(m_orderedList.end());
+                return true;
             }
+            else
+                return false;
         }
 
         // 刪除一個物件
