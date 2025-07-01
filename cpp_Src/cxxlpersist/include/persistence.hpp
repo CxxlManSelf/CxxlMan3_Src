@@ -187,7 +187,7 @@ namespace CXXL
             }
 
             // 產生一個暫時的 HOLDER
-            HOLDER tmpUniOwner(m_pHost, detachUniBaseFunc);
+            Holder tmpUniOwner(m_pHost, detachUniBaseFunc);
 
             // 將 child_ptr 設定給 HOLDER
             // 成功才放入容器中
