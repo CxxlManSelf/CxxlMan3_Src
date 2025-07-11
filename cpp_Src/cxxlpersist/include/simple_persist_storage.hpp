@@ -141,6 +141,63 @@ namespace CXXL
                 ISimplePersistContainer_StringTreeNode::create());
     };
 
+    
+    // 這個類別在存放 IPersistChannel 和 ISimplePersistContainer 兩者的實作物件指標
+    // 並提供兩者之間的操作
+    class PCnC
+    {
+    public:
+        PCnC() = default;
+        ~PCnC() = default;
+
+        std::shared_ptr<IPersistChannel> pPersistChannel_ptr;
+        std::shared_ptr<ISimplePersistContainer> pSimplePersistContainer_ptr;
+    };
+
+    // 以文字方式保存永續資料
+    struct PersistData_String
+    {
+        std::string count; // 永續資料陣列的元素數量
+        std::string values; // 永續資料陣列，以空格分隔
+    };
+
+
+    // simpPersist_save() 的回傳值
+    enum class PersistSaveResult
+    {
+        SaveOK, // 成功保存        
+        NameExist, // 保存失敗，因為指定的 name 已經存在        
+        NotLocked // 保存失敗，因為 pPersistable 或其子孫物件中不能被鎖定
+    };
+
+    // simpPersist_load() 的回傳值
+    enum class PersistLoadResult
+    {        
+        LoadOK,
+        
+
+    };
+
+    // 以文字方式保存永續資料
+    // pPersistable 具有永續資料儲存功能的物件，不能為 nullptr
+    // pTreeNode 用來保存永續資料，不能為 nullptr
+    // name 永續資料的名稱，pTreeNode 的根節點中不可以含有同名的子節點
+    PersistSaveResult cxxlFASTCALL simpPersist_save(const IPersistChannel *pPersistable, 
+       const std::shared_ptr<TreeNode<PersistData_String> > &treeNode_ptr, 
+       const std::u8string &name);
+
+    // 以文字方式讀取永續資料
+    PersistLoadResult cxxlFASTCALL simpPersist_load(IPersistChannel *pPersistable, 
+        const std::shared_ptr<const TreeNode<PersistData_String> > &treeNode_ptr, 
+        const std::u8string &name);
+
+
+
+    
+
+
+
+
 /*    
     class SimpleSerialize : public ISerialize
     {

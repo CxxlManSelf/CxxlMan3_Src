@@ -1,7 +1,7 @@
 /*****************************************************************************
  * persist_storage.hpp v0.1.0
  *
- * IPersistable 的永續資料儲存體的標準介面
+ * 永續資料儲存體和 IPersistable 溝通的的標準介面
  *
  * author: CxxlMan
  * date: 2025 -
@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <stdfloat>
 #include <list>
+#include <string>
 
 #include "sysdef.hpp"
 
@@ -43,7 +44,7 @@ namespace CXXL
     class IChildLinkChannel
     {
         
-        virtual std::list<IPersistChannel *> cxxlFASTCALL getPersistable() const = 0;
+        virtual std::list<IPersistChannel *> cxxlFASTCALL getChildPersistables() const = 0;
     public:
         virtual ~IChildLinkChannel() {}
     };

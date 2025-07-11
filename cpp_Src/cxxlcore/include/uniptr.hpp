@@ -7,8 +7,8 @@
  * 注意事項：沒做 std::mutex 保護，因為 UniPtr 定位在暫時性或參數的
  *          使用，不應拿來共用
  *
- * 用此代替 std::shared_ptr 的用意在加入 UniBaseDestructor 的處理，確
- * 保作為 Host 的 UniBase 會存在
+ * 用此代替 std::shared_ptr 的用意在加入 UniBaseDestructor 的處理，在單一
+ * 線程下確保作為 Host 的 UniBase 會存在
  * 
  * Author:      CxxlMan
  * date:        2025 -
