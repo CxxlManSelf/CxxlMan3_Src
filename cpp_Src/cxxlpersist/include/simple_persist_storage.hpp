@@ -165,15 +165,15 @@ namespace CXXL
     // simpPersist_save() 的回傳值
     enum class PersistSaveResult
     {
-        SaveOK, // 成功保存        
-        NameExist, // 保存失敗，因為指定的 name 已經存在        
-        NotLocked // 保存失敗，因為 pPersistable 或其子孫物件中不能被鎖定
+        SUCCESS, // 成功保存        
+        NAME_CONFLICT, // 保存失敗，因為指定的 name 已經存在        
+        NOT_LOCKABLE // 保存失敗，因為 pPersistable 或其子孫物件中不能被鎖定
     };
 
     // simpPersist_load() 的回傳值
     enum class PersistLoadResult
     {        
-        LoadOK,
+        SUCCESS, // 成功讀取
         
 
     };

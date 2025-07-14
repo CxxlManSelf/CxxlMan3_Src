@@ -1,5 +1,5 @@
 /***********************************************************
- * treenode.hpp 2.0.2
+ * treenode.hpp 2.0.3
  *
  * 一個階層式的樹狀容器，每個節點可以包含一個可有可無物件，和它
  * 之下不限數量(也可以是 0)的子容器
@@ -52,7 +52,7 @@ namespace CXXL
 
             auto newChild = std::make_shared<D>(name);
             m_children.push_back(newChild);
-            return newChild;
+            return std::move(newChild);
         }
 
         // 在特定子節點之前插入新節點
@@ -78,7 +78,7 @@ namespace CXXL
 
             auto newChild = std::make_shared<D>(name);
             m_children.insert(it, newChild);
-            return newChild;
+            return std::move(newChild);
         }
 
         // 在特定子節點之後插入新節點
@@ -104,7 +104,7 @@ namespace CXXL
 
             auto newChild = std::make_shared<D>(name);
             m_children.insert(std::next(it), newChild);
-            return newChild;
+            return std::move(newChild);
         }
 
         // 尋找特定名稱的子節點

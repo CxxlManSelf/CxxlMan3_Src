@@ -66,8 +66,12 @@ namespace CXXL
                 if(lockTime(persistable_mutex) == false)        
                     return 0;
 
+                // 重覆鎖
                 if(m_SerializeState != 0)
+                {
+                    persistable_mutex.unlock();
                     return 2;
+                }
                 
                 m_SerializeState = 1;
                 return 1;

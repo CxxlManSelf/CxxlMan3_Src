@@ -23,6 +23,9 @@ namespace CXXL
     // IPersistStorage 和 _Persistable 的溝通介面
     class IPersistChannel
     {
+    public:
+        virtual ~IPersistChannel() {}
+
         virtual std::list<IChildLinkChannel *>& cxxlFASTCALL getChildLinks() const = 0;
 
         // lock 失敗回覆 0
@@ -34,19 +37,15 @@ namespace CXXL
         // lockMutex() 成功(回覆非 0)必須呼叫
         // lockMutex() 失敗絕對不能呼叫
         virtual void cxxlFASTCALL unlockMutex() = 0;
-
-
-    public:
-        virtual ~IPersistChannel() {}
     };
 
     // 和 _ChildLink 的溝通介面
     class IChildLinkChannel
-    {
-        
-        virtual std::list<IPersistChannel *> cxxlFASTCALL getChildPersistables() const = 0;
+    {        
     public:
         virtual ~IChildLinkChannel() {}
+        
+        virtual std::list<IPersistChannel *> cxxlFASTCALL getChildPersistables() const = 0;
     };
 
     // Persistable 執行永續儲存的 Save 序列化介面
