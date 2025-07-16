@@ -58,8 +58,8 @@ namespace CXXL
             // 不管成功失敗都會 mutex 解除鎖定，並將 m_SerializeState 設為 0            
             int8_t m_SerializeState = 0;
 
-            // try_lock() 失敗回覆 0
-            // try_lock() 鎖定成功回覆 1
+            // lock 失敗回覆 0
+            // lock 鎖定成功回覆 1
             // 成功又再 lock 一次回覆 2
             int cxxlFASTCALL lockMutex() override final // class IPersistChannel
             {        
@@ -69,7 +69,8 @@ namespace CXXL
                 // 重覆鎖
                 if(m_SerializeState != 0)
                 {
-                    persistable_mutex.unlock();
+                    // 不解鎖，儲存單元 lock 成功幾次就要 unlock 幾次
+                    // persistable_mutex.unlock(); 
                     return 2;
                 }
                 

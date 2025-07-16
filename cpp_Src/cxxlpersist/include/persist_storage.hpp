@@ -26,11 +26,11 @@ namespace CXXL
     public:
         virtual ~IPersistChannel() {}
 
-        virtual std::list<IChildLinkChannel *>& cxxlFASTCALL getChildLinks() const = 0;
+        virtual const std::list<IChildLinkChannel *>& cxxlFASTCALL getChildLinks() const = 0;
 
         // lock 失敗回覆 0
         // lock 成功回覆 1
-        // 成功又再 lock 一次回覆 2
+        // 成功又再 lock 回覆 2
         virtual int cxxlFASTCALL lockMutex() = 0;
 
         // 呼叫端須管控好
@@ -45,7 +45,7 @@ namespace CXXL
     public:
         virtual ~IChildLinkChannel() {}
         
-        virtual std::list<IPersistChannel *> cxxlFASTCALL getChildPersistables() const = 0;
+        virtual std::list<IPersistChannel *>& cxxlFASTCALL getChildPersistables() const = 0;
     };
 
     // Persistable 執行永續儲存的 Save 序列化介面
