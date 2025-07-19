@@ -20,42 +20,14 @@ namespace CXXL
 {
     class IChildLinkChannel;
 
-    // IPersistStorage 和 _Persistable 的溝通介面
-    class IPersistChannel
-    {
-    public:
-        virtual ~IPersistChannel() {}
-
-        virtual const std::list<IChildLinkChannel *>& cxxlFASTCALL getChildLinks() const = 0;
-
-        // lock 失敗回覆 0
-        // lock 成功回覆 1
-        // 成功又再 lock 回覆 2
-        virtual int cxxlFASTCALL lockMutex() = 0;
-
-        // 呼叫端須管控好
-        // lockMutex() 成功(回覆非 0)必須呼叫
-        // lockMutex() 失敗絕對不能呼叫
-        virtual void cxxlFASTCALL unlockMutex() = 0;
-    };
-
-    // 和 _ChildLink 的溝通介面
-    class IChildLinkChannel
-    {        
-    public:
-        virtual ~IChildLinkChannel() {}
-        
-        virtual std::list<IPersistChannel *>& cxxlFASTCALL getChildPersistables() const = 0;
-    };
-
     // Persistable 執行永續儲存的 Save 序列化介面
     class ISerializeSave
     {
     public:
         virtual ~ISerializeSave() {}
 
-        // 回傳值為 false 表示遇到 null pointer 的情況
-        // 只要有一個失敗 IPersistable::Save() 就應回傳 false
+        // 回傳值為 false 表示名稱未指定或已存在或是 p 為 null
+        // 只要有一個失敗，IPersistable::Save() 就應回傳 false
         virtual bool cxxlFASTCALL operator()(char8_t *p, size_t count, const std::u8string &name) = 0;
         virtual bool cxxlFASTCALL operator()(std::int8_t *p, size_t count, const std::u8string &name) = 0;
         virtual bool cxxlFASTCALL operator()(std::int16_t *p, size_t count, const std::u8string &name) = 0;
@@ -92,6 +64,41 @@ namespace CXXL
         virtual bool cxxlFASTCALL operator()(std::float128_t *p, size_t count, const std::u8string &name) = 0;
         
     };
+
+    // IPersistStorage 和 _Persistable 的溝通介面
+    class IPersistChannel
+    {
+    public:
+        virtual ~IPersistChannel() {}
+
+        virtual const std::list<IChildLinkChannel *>& cxxlFASTCALL getChildLinks() const = 0;
+
+        // lock 失敗回覆 0
+        // lock 成功回覆 1
+        // 成功又再 lock 回覆 2
+        virtual int cxxlFASTCALL lockMutex() = 0;
+
+        // 呼叫端須管控好
+        // lockMutex() 成功(回覆非 0)必須呼叫
+        // lockMutex() 失敗絕對不能呼叫
+        virtual void cxxlFASTCALL unlockMutex() = 0;
+
+        // 只要有一個使用 ISerializeSave& 儲存失敗就應回傳 false
+        virtual bool cxxlFASTCALL save(ISerializeSave &) = 0;
+
+        virtual bool cxxlFASTCALL load(const ISerializeLoad &) = 0;
+    };
+
+    // 和 _ChildLink 的溝通介面
+    class IChildLinkChannel
+    {        
+    public:
+        virtual ~IChildLinkChannel() {}
+        
+        virtual std::list<IPersistChannel *>& cxxlFASTCALL getChildPersistables() const = 0;
+    };
+
+
 
     // 永續資料儲存體的介面
     class IPersistStorage

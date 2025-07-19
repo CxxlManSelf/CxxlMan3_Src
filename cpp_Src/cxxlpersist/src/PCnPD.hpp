@@ -14,6 +14,7 @@
 #define __CXXLPERSIST_PCNPD_HPP_CxxlMan3
 
 #include <persist_storage.hpp>
+#include "SerializeSave.hpp"
 
 namespace CXXL
 {
@@ -106,18 +107,8 @@ public:
                 return false;
         }
 
-
-        // 保存 IChildLinkChannel
-        const std::list<IChildLinkChannel *>& childLinks = m_pPC->getChildLinks();
-        for(auto link_it = childLinks.begin(); link_it != childLinks.end(); ++link_it)
-        {
-            result = (*link_it)->save();
-
-            if(result != PersistSaveResult::SUCCESS)
-                return result;
-        }
-
-        return result;
+        // 再保存自己
+        return m_pPC->save( SerializeSave<T>(m_PD_ptr) );
     }
 
 
