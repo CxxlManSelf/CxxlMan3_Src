@@ -1,5 +1,5 @@
 /***********************************************************
- * treenode.hpp 2.0.3
+ * treenode.hpp 2.0.4
  *
  * 一個階層式的樹狀容器，每個節點可以包含一個可有可無物件，和它
  * 之下不限數量(也可以是 0)的子容器
@@ -186,6 +186,9 @@ namespace CXXL
 
         // 設定此節點資料
         void setData(const T &value) { m_data = value; }
+
+        // 設定此節點資料
+        void setData(T &&value) { m_data = std::move(value); }
 
     };
 } // namespace CXXL

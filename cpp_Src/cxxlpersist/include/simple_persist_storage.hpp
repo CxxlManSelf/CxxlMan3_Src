@@ -157,8 +157,39 @@ namespace CXXL
     // 以文字方式保存永續資料
     struct PersistData_String
     {
-        std::string count; // 永續資料陣列的元素數量
-        std::string values; // 永續資料陣列，以空格分隔
+        std::size_t m_count; // 永續資料陣列的元素數量
+        std::string m_values; // 永續資料陣列，以空格分隔
+
+        // move constructor
+        PersistData_String(PersistData_String &&other) noexcept
+            : m_count(other.m_count), m_values(std::move(other.m_values)) {}
+
+        // Constructor
+        // count: 永續資料陣列的元素數量
+        // values: 永續資料陣列
+        template <typename T>
+        PersistData_String(std::size_t count, const T *values)
+        {
+            this->m_count = count;
+            // 將 values 陣列中的元素一個個轉為數值字串
+            // 並以空格分隔
+            for (std::size_t i = 0; i < count; ++i)
+            {
+                if(i != 0) this->m_values += " ";
+
+                this->m_values += std::to_string(values[i]);
+            }            
+        }
+
+        // Getter
+        // values: 永續資料陣列，已備好足夠的空間
+        template <typename T>
+        void cxxlFASTCALL get(T *values) const
+        {
+            std::stringstream ss(this->values);
+            for (std::size_t i = 0; i < this->m_count; ++i)
+                ss >> m_values[i];
+        }        
     };
 
 
