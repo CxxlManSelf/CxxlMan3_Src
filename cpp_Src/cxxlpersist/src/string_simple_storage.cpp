@@ -12,9 +12,7 @@ PersistSaveResult cxxlFASTCALL simpPersist_save(IPersistChannel *pPersistable,
     // 先試試提供的 TreeNode 是否已有名為 name 的子節點
     std::shared_ptr<TreeNode<PersistData_String> > PDroot_ptr = PD_ptr->addChild(name);
     if(!PDroot_ptr)
-    {
         return PersistSaveResult::NAME_CONFLICT;
-    }
 
     PCnPD_Save<PersistData_String> PCnPD_root(name); // 這裡名字不重要只要不重複就好
     if(!PCnPD_root.init(pPersistable,PDroot_ptr))
@@ -31,5 +29,18 @@ PersistSaveResult cxxlFASTCALL simpPersist_save(IPersistChannel *pPersistable,
     return PersistSaveResult::SUCCESS;
     
 }
+
+// 以文字方式讀取永續資料
+PersistLoadResult cxxlFASTCALL simpPersist_load(IPersistChannel *pPersistable, 
+    const std::shared_ptr<const TreeNode<PersistData_String> > &PD_ptr, 
+    const std::u8string &name)
+{
+    std::shared_ptr<TreeNode<PersistData_String> > PDroot_ptr = PD_ptr->addChild(name);
+    if(!PDroot_ptr)
+        return PersistLoadResult::NAME_NOT_FOUND;
+
+        
+}
+
 
 }
