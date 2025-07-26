@@ -20,34 +20,39 @@ class SerializeSave:public ISerializeSave
 {
     std::shared<TreeNode<PD> > m_PD_ptr;
 
+    size_t m_index = 0; // 作為名稱的一部分
+
 
     template <typename T>
-    bool cxxlFASTCALL Save(T *p, size_t count, const std::u8string &name)
+    void cxxlFASTCALL Save(T *p, size_t count, const std::u8string &name)
     {
         if(p == nullptr) return false;
 
-        std::shared_ptr<TreeNode<PD> > PD_ptr = m_PD_ptr->addChild(name);
-        if(!PD_ptr) return false; // 名稱未指定或已存在
+        // 將 m_index 轉成字串
+        std::u8string index_str = std::to_string(m_index++);        
 
-        return PD_ptr->setData({count, p});
+        std::shared_ptr<TreeNode<PD> > PD_ptr = m_PD_ptr->addChild(index_str + u8'.' + name);
+        // if(!PD_ptr) return false; // 加了編號不可能發生
+
+        PD_ptr->setData({count, p});
     }
 
-    virtual bool cxxlFASTCALL operator()(char8_t *p, size_t count, const std::u8string &name) override
+    virtual void cxxlFASTCALL operator()(char8_t *p, size_t count, const std::u8string &name) override
     {
-        return Save(p, count, name);
+        Save(p, count, name);
     }
 
-    virtual bool cxxlFASTCALL operator()(std::int8_t *p, size_t count, const std::u8string &name) = 0;
-    virtual bool cxxlFASTCALL operator()(std::int16_t *p, size_t count, const std::u8string &name) = 0;
-    virtual bool cxxlFASTCALL operator()(std::int32_t *p, size_t count, const std::u8string &name) = 0;
-    virtual bool cxxlFASTCALL operator()(std::int64_t *p, size_t count, const std::u8string &name) = 0;
-    virtual bool cxxlFASTCALL operator()(std::uint8_t *p, size_t count, const std::u8string &name) = 0;
-    virtual bool cxxlFASTCALL operator()(std::uint16_t *p, size_t count, const std::u8string &name) = 0;
-    virtual bool cxxlFASTCALL operator()(std::uint32_t *p, size_t count, const std::u8string &name) = 0;
-    virtual bool cxxlFASTCALL operator()(std::uint64_t *p, size_t count, const std::u8string &name) = 0;
-    virtual bool cxxlFASTCALL operator()(std::float32_t *p, size_t count, const std::u8string &name) = 0;
-    virtual bool cxxlFASTCALL operator()(std::float64_t *p, size_t count, const std::u8string &name) = 0;
-    virtual bool cxxlFASTCALL operator()(std::float128_t *p, size_t count, const std::u8string &name) = 0;
+    virtual void cxxlFASTCALL operator()(std::int8_t *p, size_t count, const std::u8string &name) = 0;
+    virtual void cxxlFASTCALL operator()(std::int16_t *p, size_t count, const std::u8string &name) = 0;
+    virtual void cxxlFASTCALL operator()(std::int32_t *p, size_t count, const std::u8string &name) = 0;
+    virtual void cxxlFASTCALL operator()(std::int64_t *p, size_t count, const std::u8string &name) = 0;
+    virtual void cxxlFASTCALL operator()(std::uint8_t *p, size_t count, const std::u8string &name) = 0;
+    virtual void cxxlFASTCALL operator()(std::uint16_t *p, size_t count, const std::u8string &name) = 0;
+    virtual void cxxlFASTCALL operator()(std::uint32_t *p, size_t count, const std::u8string &name) = 0;
+    virtual void cxxlFASTCALL operator()(std::uint64_t *p, size_t count, const std::u8string &name) = 0;
+    virtual void cxxlFASTCALL operator()(std::float32_t *p, size_t count, const std::u8string &name) = 0;
+    virtual void cxxlFASTCALL operator()(std::float64_t *p, size_t count, const std::u8string &name) = 0;
+    virtual void cxxlFASTCALL operator()(std::float128_t *p, size_t count, const std::u8string &name) = 0;
 
 public:
     // Constructor

@@ -97,18 +97,17 @@ public:
 
     // 保存 IPersistChannel
     // 先深後廣
-    bool cxxlFASTCALL save()
+    void cxxlFASTCALL save()
     {
         // 先保存子節點
         const std::list<std::shared_ptr<PCnPD<T> > > &childrens = getChildren();
         for(auto child_it = childrens.begin(); child_it != childrens.end(); ++child_it)
         {
             if(!(*child_it)->save())
-                return false;
         }
 
         // 再保存自己
-        return m_pPC->save( SerializeSave<T>(m_PD_ptr) );
+        m_pPC->save( SerializeSave<T>(m_PD_ptr) );
     }
 };
 

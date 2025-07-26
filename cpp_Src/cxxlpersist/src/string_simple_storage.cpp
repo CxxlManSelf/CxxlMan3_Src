@@ -20,11 +20,8 @@ PersistSaveResult cxxlFASTCALL simpPersist_save(IPersistChannel *pPersistable,
         return PersistSaveResult::NOT_LOCKABLE;
     }
 
-    // 執行永續儲存
-    if(!PCnPD_root.save())
-    {
-        return PersistSaveResult::ISERIALIZE_SAVE_FAIL;
-    }
+    // 執行永續儲存    
+    PCnPD_root.save();
 
     return PersistSaveResult::SUCCESS;
     
@@ -35,7 +32,7 @@ PersistLoadResult cxxlFASTCALL simpPersist_load(IPersistChannel *pPersistable,
     const std::shared_ptr<const TreeNode<PersistData_String> > &PD_ptr, 
     const std::u8string &name)
 {
-    std::shared_ptr<TreeNode<PersistData_String> > PDroot_ptr = PD_ptr->addChild(name);
+    std::shared_ptr<TreeNode<PersistData_String> > PDroot_ptr = PD_ptr->findChildByName(name);
     if(!PDroot_ptr)
         return PersistLoadResult::NAME_NOT_FOUND;
 
