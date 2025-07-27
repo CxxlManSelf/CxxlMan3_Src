@@ -42,26 +42,44 @@ namespace CXXL
         virtual void cxxlFASTCALL operator()(std::float128_t *p, size_t count, const std::u8string &name) = 0;
     };
 
+    // ISerializeLoad() 的回傳值
+    enum class SerializeLoadResult
+    {
+        LOAD_SUCCESS, // 讀取階段下成功
+        CHK_SUCCESS, // 檢查階段下成功
+        CHK_FAILED // 檢查階段下失敗
+    };
+
     // Persistable 執行永續儲存的 Load 序列化介面
     class ISerializeLoad
     {
     public:
         virtual ~ISerializeLoad() {}
 
-        // 回傳值為 false 表示失敗，pPersistable 的資料不會改變
+        // 是否處於檢查階段
+        virtual bool cxxlFASTCALL isChecking() = 0;
+
+        
+        // p: 用來獲得永續資料陣列，檢查階段不會用到
+        // count: 在讀取階段用來獲得永續資料陣列的長度
+        //        在檢查階段用來指定要檢查的永續資料長度，若指定為 0 表示不檢查
+        // name: 要讀取的永續資料名稱，只有在檢查階段才有意義
+        //
+        // 只有在檢查階段回傳值才有意義，讀取階段永遠回傳 true
         // 只要有一個失敗 IPersistable::Load() 就應回傳 false
-        virtual bool cxxlFASTCALL operator()(char8_t *p, size_t count, const std::u8string &name) = 0;
-        virtual bool cxxlFASTCALL operator()(std::int8_t *p, size_t count, const std::u8string &name) = 0;
-        virtual bool cxxlFASTCALL operator()(std::int16_t *p, size_t count, const std::u8string &name) = 0;
-        virtual bool cxxlFASTCALL operator()(std::int32_t *p, size_t count, const std::u8string &name) = 0;
-        virtual bool cxxlFASTCALL operator()(std::int64_t *p, size_t count, const std::u8string &name) = 0;
-        virtual bool cxxlFASTCALL operator()(std::uint8_t *p, size_t count, const std::u8string &name) = 0;
-        virtual bool cxxlFASTCALL operator()(std::uint16_t *p, size_t count, const std::u8string &name) = 0;
-        virtual bool cxxlFASTCALL operator()(std::uint32_t *p, size_t count, const std::u8string &name) = 0;
-        virtual bool cxxlFASTCALL operator()(std::uint64_t *p, size_t count, const std::u8string &name) = 0;
-        virtual bool cxxlFASTCALL operator()(std::float32_t *p, size_t count, const std::u8string &name) = 0;
-        virtual bool cxxlFASTCALL operator()(std::float64_t *p, size_t count, const std::u8string &name) = 0;
-        virtual bool cxxlFASTCALL operator()(std::float128_t *p, size_t count, const std::u8string &name) = 0;
+        // 必須所有父子孫物皆傳回 true，才會進入讀取階段
+        virtual SerializeLoadResult cxxlFASTCALL operator()(char8_t **p, size_t &count, const std::u8string &name) = 0;
+        virtual SerializeLoadResult cxxlFASTCALL operator()(std::int8_t **p, size_t &count, const std::u8string &name) = 0;
+        virtual SerializeLoadResult cxxlFASTCALL operator()(std::int16_t **p, size_t &count, const std::u8string &name) = 0;
+        virtual SerializeLoadResult cxxlFASTCALL operator()(std::int32_t **p, size_t &count, const std::u8string &name) = 0;
+        virtual SerializeLoadResult cxxlFASTCALL operator()(std::int64_t **p, size_t &count, const std::u8string &name) = 0;
+        virtual SerializeLoadResult cxxlFASTCALL operator()(std::uint8_t **p, size_t &count, const std::u8string &name) = 0;
+        virtual SerializeLoadResult cxxlFASTCALL operator()(std::uint16_t **p, size_t &count, const std::u8string &name) = 0;
+        virtual SerializeLoadResult cxxlFASTCALL operator()(std::uint32_t **p, size_t &count, const std::u8string &name) = 0;
+        virtual SerializeLoadResult cxxlFASTCALL operator()(std::uint64_t **p, size_t &count, const std::u8string &name) = 0;
+        virtual SerializeLoadResult cxxlFASTCALL operator()(std::float32_t **p, size_t &count, const std::u8string &name) = 0;
+        virtual SerializeLoadResult cxxlFASTCALL operator()(std::float64_t **p, size_t &count, const std::u8string &name) = 0;
+        virtual SerializeLoadResult cxxlFASTCALL operator()(std::float128_t **p, size_t &count, const std::u8string &name) = 0;
         
     };
 
