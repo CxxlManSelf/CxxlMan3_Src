@@ -198,7 +198,6 @@ class SerializeLoad : public ISerializeLoad
         {
             Visitor<char8_t> visitor(p, count);
             (m_PD_srcs_it++)->accept(visitor);
-            return SerializeLoadResult::LOAD_SUCCESS;
         }
         else // 已無資料可讀取
         {
@@ -206,6 +205,8 @@ class SerializeLoad : public ISerializeLoad
             std::cerr << "SerializeLoad: Persistent data access not match" << std::endl;
             exit(EXIT_FAILURE);
         }
+
+        return SerializeLoadResult::LOAD_SUCCESS;
     }
 
     virtual SerializeLoadResult cxxlFASTCALL operator()(std::int8_t **p, size_t &count, const std::u8string &name) = 0;

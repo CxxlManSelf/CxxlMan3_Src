@@ -1,11 +1,11 @@
 /***********************************************************
- * treenode.hpp 2.0.4
+ * treenode.hpp 2.1.5
  *
  * 一個階層式的樹狀容器，每個節點可以包含一個可有可無物件，和它
  * 之下不限數量(也可以是 0)的子容器
  *
  * 採用 CRTP 架構，可由 TreeNodeBase 延伸出自定義類別
- * 嚴構規定每個節點都須有名稱，同一層的節點名稱不可重複
+ * 每個節點可以 重複 無名子節點，但若有名稱則只能有一個，即名稱不可重複
  * 
  * Author: CxxlMan
  * Date: 2025-
@@ -24,7 +24,10 @@ namespace CXXL
     template <typename D>    
     class TreeNodeBase
     {    
-        const std::u8string m_name;                // 節點名稱
+        // 節點名稱
+        // 可以為空，可不只一個空名節點
+        // 若不為空則不可重複
+        const std::u8string m_name;                
         std::list<std::shared_ptr<D> > m_children; // 子節點列表
 
     public:
@@ -37,18 +40,12 @@ namespace CXXL
 
         // 新增子節點（在尾端加入）
         // 回傳新增的子節點
-        // 若子節點名稱未指定或已存在回傳 nullptr
+        // 子節點名稱可為空，若子節點名稱有指定且已存在回傳 nullptr
         std::shared_ptr<D> addChild(const std::u8string &name)
         {
-            if(name.empty())
-            {
+            // 若有節點名稱則不可重複
+            if(!name.empty() && hasChild(name))
                 return nullptr;
-            }
-
-            if(findChildByName(name) != nullptr)
-            {
-                return nullptr;
-            }
 
             auto newChild = std::make_shared<D>(name);
             m_children.push_back(newChild);
@@ -57,52 +54,38 @@ namespace CXXL
 
         // 在特定子節點之前插入新節點
         // 若 childNode 不存在回覆 nullptr
-        // 若子節點名稱未指定或已存在回傳 nullptr
+        // 子節點名稱可為空，若子節點名稱有指定且已存在回傳 nullptr
         std::shared_ptr<D> insertBefore(const std::shared_ptr<D> &childNode, const std::u8string &name)
         {
+            // 檢查指定的子節點是否存在
             auto it = std::find(m_children.begin(), m_children.end(), childNode);
             if (it == m_children.end())
-            {
                 return nullptr;
-            }
 
-            if(name.empty())
-            {
+            // 若有節點名稱則不可重複
+            if(!name.empty() && hasChild(name))
                 return nullptr;
-            }
 
-            if(findChildByName(name) != nullptr)
-            {
-                return nullptr;
-            }
-
-            auto newChild = std::make_shared<D>(name);
+            std::shared_ptr<D> newChild = std::make_shared<D>(name);
             m_children.insert(it, newChild);
             return std::move(newChild);
         }
 
         // 在特定子節點之後插入新節點
         // 若 childNode 不存在回覆 nullptr
-        // 若子節點名稱未指定或已存在回傳 nullptr
+        // 子節點名稱可為空，若子節點名稱有指定且已存在回傳 nullptr
         std::shared_ptr<D> insertAfter(const std::shared_ptr<D> &childNode, const std::u8string &name)
         {
+            // 檢查指定的子節點是否存在
             auto it = std::find(m_children.begin(), m_children.end(), childNode);
             if (it == m_children.end())
-            {
                 return nullptr;
-            }
 
-            if(name.empty())
-            {
+            // 若有節點名稱則不可重複
+            if(!name.empty() && hasChild(name))
                 return nullptr;
-            }
 
-            if(findChildByName(name) != nullptr)
-            {
-                return nullptr;
-            }
-
-            auto newChild = std::make_shared<D>(name);
+            std::shared_ptr<D> newChild = std::make_shared<D>(name);
             m_children.insert(std::next(it), newChild);
             return std::move(newChild);
         }
@@ -113,11 +96,24 @@ namespace CXXL
             for (const auto &child : m_children)
             {
                 if (child->getName() == name)
-                {
                     return child;
-                }
             }
             return nullptr;
+        }
+
+        // 檢查指定名稱的子節點是否存在
+        bool hasChild(const std::u8string &name) const
+        {
+            if(name.empty())
+                return false;
+
+            for (const auto &child : m_children)
+            {
+                if (child->getName() == name)
+                    return true;
+            }
+                
+            return false;
         }
 
         // 取得子節點數量
