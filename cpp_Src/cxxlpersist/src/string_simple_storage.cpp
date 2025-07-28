@@ -9,10 +9,14 @@ PersistSaveResult cxxlFASTCALL simpPersist_save(IPersistChannel *pPersistable,
     const std::shared_ptr<TreeNode<PersistData_String> > &PD_ptr, 
     const std::u8string &name)
 {
-    // 先試試提供的 TreeNode 是否已有名為 name 的子節點
+    // 名字不可為空
+    if(name.empty())
+        return PersistSaveResult::NAME_EMPTY_OR_EXIST;
+
+    // 先試試提供的 PD_ptr 是否已有名為 name 的子節點
     std::shared_ptr<TreeNode<PersistData_String> > PDroot_ptr = PD_ptr->addChild(name);
     if(!PDroot_ptr)
-        return PersistSaveResult::NAME_CONFLICT;
+        return PersistSaveResult::NAME_EMPTY_OR_EXIST;
 
     PCnPD_Save<PersistData_String> PCnPD_root(name); // 這裡名字不重要只要不重複就好
     if(!PCnPD_root.init(pPersistable,PDroot_ptr))
@@ -35,6 +39,13 @@ PersistLoadResult cxxlFASTCALL simpPersist_load(IPersistChannel *pPersistable,
     std::shared_ptr<TreeNode<PersistData_String> > PDroot_ptr = PD_ptr->findChildByName(name);
     if(!PDroot_ptr)
         return PersistLoadResult::NAME_NOT_FOUND;
+
+    PCnPD_Load<PersistData_String> PCnPD_root(name); // 這裡名字不重要只要不重複就好
+    PersistLoadResult initResult = PCnPD_root.init(pPersistable,PDroot_ptr);
+    if(initResult != PersistLoadResult::SUCCESS)
+    {
+        return initResult;
+    }
 
         
 }

@@ -93,6 +93,9 @@ namespace CXXL
         // 尋找特定名稱的子節點
         std::shared_ptr<D> findChildByName(const std::u8string &name) const
         {
+            if(name.empty())
+                return nullptr;
+                
             for (const auto &child : m_children)
             {
                 if (child->getName() == name)

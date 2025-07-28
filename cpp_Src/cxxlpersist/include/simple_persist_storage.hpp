@@ -198,7 +198,7 @@ namespace CXXL
     enum class PersistSaveResult
     {
         SUCCESS, // 成功保存        
-        NAME_CONFLICT, // 保存失敗，因為指定的 name 已經存在        
+        NAME_EMPTY_OR_EXIST, // 保存失敗，因為指定的 name 是空的或已經存在
         NOT_LOCKABLE // 保存失敗，因為 pPersistable 或其子孫物件中不能被鎖定
     };
 
