@@ -56,32 +56,21 @@ public:
         // 第一次鎖住，須繼續建立子 PCnPD_Save
         if(m_lockResult == 1)
         {
-            // 新增一個名為 "_CLs" 的子節點，用來維護存放 IChildLinkChannel
+            // 新增一個名為 "_CLs" 的子節點，用來存放 m_pPC 的各個 IChildLinkChannel
             std::shared_ptr<TreeNode<T> > CLs_ptr =
                 m_PD_ptr->addChild(u8"_CLs");
 
-            // 用來維護存放 IChildLinkChannel 的子節點的順序，並作為子節點的名稱
-            // size_t linkIndex = 0;
-
-            const std::list<IChildLinkChannel *>& childLinks = m_pPC->getChildLinks();
-            for(auto link_it = childLinks.begin(); link_it != childLinks.end(); ++link_it)
+            // m_pPC 的所有 IChildLinkChannel 
+            const std::list<IChildLinkChannel *>& childLink_list = m_pPC->getChildLinks();
+            for(auto link_it = childLink_list.begin(); link_it != childLink_list.end(); ++link_it)
             {
-                // 創建存放 IChildLinkChannel 子節點名稱
-                // std::u8string linkName(u8"#");
-                // linkName += (const char8_t *)(std::to_string(linkIndex++).c_str());
-                // 創建存放 IChildLinkChannel 的子節點
+                // 創建一個存放 IChildLinkChannel 的子節點，用來存放其 IPersistChannel 陣列
                 std::shared_ptr<TreeNode<T> > CPs_ptr = CLs_ptr->addChild(u8"");
 
-                // 用來維護存放 IPersistChannel 的子節點的順序，並作為子節點的名稱
-                // size_t persistIndex = 0;
-
-                // 取得 IChildLinkChannel 包裹的 IPersistChannel
-                std::list<IPersistChannel *> &PCs = (*link_it)->getChildPersistables();
-                for(auto PC_it = PCs.begin(); PC_it != PCs.end(); ++PC_it)
+                // 取得 IChildLinkChannel 包裹的 IPersistChannel 列表
+                std::list<IPersistChannel *> &PC_list = (*link_it)->getChildPersistables();
+                for(auto PC_it = PC_list.begin(); PC_it != PC_list.end(); ++PC_it)
                 {
-                    // 創建存放 IPersistChannel 子節點名稱
-                    //std::u8string childName(u8"-");
-                    //childName += (const char8_t *)(std::to_string(persistIndex++).c_str());
                     // 創建存放 IPersistChannel 的子節點
                     std::shared_ptr<TreeNode<T> > child_PD_ptr = CPs_ptr->addChild(u8"");
 
@@ -140,37 +129,39 @@ public:
         // 第一次鎖住，須繼續建立子 PCnPD_Load
         if(m_lockResult == 1)
         {
-            // 取得名為 "_CLs" 的子節點
+            // 取得名為 "_CLs" 的子節點，其內含有 m_pPC 的各個 IChildLinkChannel
             std::shared_ptr<TreeNode<T> > CLs_ptr = m_PD_ptr->getChild(u8"_CLs");
             if(!CLs_ptr) return PersistLoadResult::DATA_FORMAT_CORRUPT;
              
-            const std::list<IChildLinkChannel *>& childLinks = m_pPC->getChildLinks();
+            // m_pPC 的所有 IChildLinkChannel 
+            const std::list<IChildLinkChannel *>& childLink_list = m_pPC->getChildLinks();
 
-            if(CLs_ptr-childCount() != childLinks.size())
-                return PersistLoadResult::DATA_NOT_MATCH;
+            if(CLs_ptr-childCount() != childLink_list.size())
+                return PersistLoadResult::DATA_NOT_MATCH;            
             
             const std::list<std::shared_ptr<TreeNode<T> > >& CLs_list = CLs_ptr->getChildren();
             // CLs_list 的 iterator
             auto CLs_it = CLs_list.begin();
 
-            // 用來維護存放 IChildLinkChannel 的子節點的順序，並作為子節點的名稱
-            // size_t linkIndex = 0;
             for(auto link_it = childLinks.begin(); link_it != childLinks.end(); ++link_it)
             {
+                // 取得一個存放 IChildLinkChannel 的子節點，其內存放其 IPersistChannel 陣列
                 std::shared_ptr<TreeNode<T> > CPs_ptr = *(CLs_it++);
 
-                // 取得 IChildLinkChannel 包裹的 IPersistChannel
-                std::list<IPersistChannel *> &PCs_list = (*link_it)->getChildPersistables();
-                const std::list<std::shared_ptr<TreeNode<T> > > &CPs_list = CPs_ptr->getChildren();
-                if(CPs_list.size() != PCs_list.size())
+                // 取得一個 IChildLinkChannel 包裹的 IPersistChannel
+                std::list<IPersistChannel *> &PC_list = (*link_it)->getChildPersistables();
+                const std::list<std::shared_ptr<TreeNode<T> > > &CP_list = CPs_ptr->getChildren();
+
+                if(CP_list.size() != PC_list.size())
                     return PersistLoadResult::DATA_NOT_MATCH;
 
-                // CPs_list 的 iterator
-                auto CPs_it = CPs_list.begin();
+                // CP_list 的 iterator
+                auto CP_it = CP_list.begin();
 
-                for(auto PC_it = PCs_list.begin(); PC_it != PCs_list.end(); ++PC_it)
+                for(auto PC_it = PC_list.begin(); PC_it != PC_list.end(); ++PC_it)
                 {
-                    std::shared_ptr<TreeNode<T> > child_PD_ptr = *(CPs_it++);
+                    // 取得存放 IPersistChannel 的子節點
+                    std::shared_ptr<TreeNode<T> > child_PD_ptr = *(CP_it++);
 
                     // 創建子節點對應的 PCnPD_Load
                     std::shared_ptr<PCnPD_Load> child_PCnPD_ptr = addChild(u8"");
