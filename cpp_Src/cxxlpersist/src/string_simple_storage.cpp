@@ -13,12 +13,13 @@ PersistSaveResult cxxlFASTCALL simpPersist_save(IPersistChannel *pPersistable,
     if(name.empty())
         return PersistSaveResult::NAME_EMPTY_OR_EXIST;
 
-    // 先試試提供的 PD_ptr 是否已有名為 name 的子節點
+    // 建立儲存永續資料的子節點
     std::shared_ptr<TreeNode<PersistData_String> > PDroot_ptr = PD_ptr->addChild(name);
+    // 提供的 PD_ptr 是否已有名為 name 的子節點
     if(!PDroot_ptr)
         return PersistSaveResult::NAME_EMPTY_OR_EXIST;
 
-    PCnPD_Save<PersistData_String> PCnPD_root(name); // 這裡名字不重要只要不重複就好
+    PCnPD_Save<PersistData_String> PCnPD_root(u8"PCnPD_root"); 
     if(!PCnPD_root.init(pPersistable,PDroot_ptr))
     {
         return PersistSaveResult::NOT_LOCKABLE;
@@ -31,16 +32,17 @@ PersistSaveResult cxxlFASTCALL simpPersist_save(IPersistChannel *pPersistable,
     
 }
 
-// 以文字方式讀取永續資料
+// 宣告在 simple_persist_storage.cpp 中
 PersistLoadResult cxxlFASTCALL simpPersist_load(IPersistChannel *pPersistable, 
     const std::shared_ptr<const TreeNode<PersistData_String> > &PD_ptr, 
     const std::u8string &name)
 {
+    // 取得儲存永續資料的子節點
     std::shared_ptr<TreeNode<PersistData_String> > PDroot_ptr = PD_ptr->findChildByName(name);
     if(!PDroot_ptr)
         return PersistLoadResult::NAME_NOT_FOUND;
 
-    PCnPD_Load<PersistData_String> PCnPD_root(name); // 這裡名字不重要只要不重複就好
+    PCnPD_Load<PersistData_String> PCnPD_root(u8"PCnPD_root");
     PersistLoadResult initResult = PCnPD_root.init(pPersistable,PDroot_ptr);
     if(initResult != PersistLoadResult::SUCCESS)
     {

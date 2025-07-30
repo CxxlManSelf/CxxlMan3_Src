@@ -216,14 +216,19 @@ namespace CXXL
 
     // 以文字方式保存永續資料
     // pPersistable 具有永續資料儲存功能的物件，不能為 nullptr
-    // pTreeNode 用來保存永續資料，不能為 nullptr
-    // name 永續資料的名稱，pTreeNode 的根節點中不可以含有同名的子節點
+    // PD_ptr 用來保存永續資料的儲存體，不能為 nullptr
+    // name 永續資料的名稱，PD_ptr 的根節點中不可以含有同名的
+    //      子節點，永續資料將保存在這個子節點中
     PersistSaveResult CXXLPERSIST_DLLEXPORT
     cxxlFASTCALL simpPersist_save(IPersistChannel *pPersistable, 
        const std::shared_ptr<TreeNode<PersistData_String> > &PD_ptr, 
        const std::u8string &name);
 
     // 以文字方式讀取永續資料
+    // pPersistable 具有永續資料儲存功能的物件，不能為 nullptr
+    // PD_ptr 保存有永續資料的儲存體，不能為 nullptr
+    // name 永續資料的名稱，PD_ptr 的根節點中必須含有這名稱的
+    //      子節點，這個子節點須保存有 pPersistable 的永續資料
     PersistLoadResult CXXLPERSIST_DLLEXPORT
     cxxlFASTCALL simpPersist_load(IPersistChannel *pPersistable, 
         const std::shared_ptr<const TreeNode<PersistData_String> > &PD_ptr, 

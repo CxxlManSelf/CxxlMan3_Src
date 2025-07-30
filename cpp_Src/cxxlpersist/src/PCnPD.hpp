@@ -19,22 +19,26 @@
 namespace CXXL
 {
 
-// T 為 TreeNode<> 包裹的類別，比如 PersistData_String
+// 負責將具有永續資料的 m_pPC 物件，儲存到永續資料儲存容器 m_PD_ptr
+// T 為 m_PD_ptr 這個永續資料儲存容器要包裹的類別，比如 PersistData_String
 template<typename T>
 class PCnPD_Save:public TreeNodeBase<PCnPD_Save<T> >
 {
-    IPersistChannel *m_pPC;
-    std::shared_ptr<TreeNode<T> > m_PD_ptr;
-    int m_lockResult;
+    IPersistChannel *m_pPC; // 具有永續資料儲存能力的物件
+    std::shared_ptr<TreeNode<T> > m_PD_ptr; // 永續資料儲存容器
+    int m_lockResult;  // m_pPC 鎖住的狀態
 
 public:
     // Constructor
+    // name 是 TreeNode<> 的要求，不具有意義
     PCnPD_Save(const std::u8string &name) 
       :TreeNodeBase<PCnPD_Save<T> >(name)
     {}
+
     // Destructor
     ~PCnPD_Save() 
     {
+        // 有鎖住過的話就要解鎖
         if(m_lockResult != 0)
         {
             m_pPC->unlockMutex();
@@ -42,6 +46,8 @@ public:
     }
 
     // 初始化
+    // 並為 m_pPC 的子物件，在 m_PD_ptr 中建立相應的儲存容器
+    // 子節點，並交給子 PCnPD_Save 處理初始化
     // 無法鎖住回覆 false
     bool cxxlFASTCALL init(IPersistChannel *pPC, 
         const std::shared_ptr<TreeNode<T> > &PD_ptr)
@@ -50,31 +56,38 @@ public:
         if(m_lockResult == 0)
             return false;
 
+        // 能鎖住才有續續的處理
         m_pPC = pPC;
         m_PD_ptr = PD_ptr;
 
         // 第一次鎖住，須繼續建立子 PCnPD_Save
+        // 否則表示 m_pPC 已處理過，不繼續處理其子物件
         if(m_lockResult == 1)
         {
-            // 新增一個名為 "_CLs" 的子節點，用來存放 m_pPC 的各個 IChildLinkChannel
+            // 儲存容器中新增一個名為 "_CLs" 的子節點，用來存放 m_pPC 的各個 IChildLinkChannel
             std::shared_ptr<TreeNode<T> > CLs_ptr =
                 m_PD_ptr->addChild(u8"_CLs");
 
             // m_pPC 的所有 IChildLinkChannel 
             const std::list<IChildLinkChannel *>& childLink_list = m_pPC->getChildLinks();
+
+            // 取出 m_pPC 的子物件和建立對應的永續資料儲存子容器
             for(auto link_it = childLink_list.begin(); link_it != childLink_list.end(); ++link_it)
             {
-                // 創建一個存放 IChildLinkChannel 的子節點，用來存放其 IPersistChannel 陣列
+                // 儲存容器中創建一個存放 IChildLinkChannel 的子節點，用來存放其 IPersistChannel 陣列
                 std::shared_ptr<TreeNode<T> > CPs_ptr = CLs_ptr->addChild(u8"");
 
                 // 取得 IChildLinkChannel 包裹的 IPersistChannel 列表
                 std::list<IPersistChannel *> &PC_list = (*link_it)->getChildPersistables();
+
+                // 為每個 m_pPC 的子物件和對應的永續資料儲存子容器，建立
+                // 子 PCnPD_Save，並交給子 PCnPD_Save 初始化
                 for(auto PC_it = PC_list.begin(); PC_it != PC_list.end(); ++PC_it)
                 {
-                    // 創建存放 IPersistChannel 的子節點
+                    // 儲存容器中創建一個存放 IPersistChannel 的子節點
                     std::shared_ptr<TreeNode<T> > child_PD_ptr = CPs_ptr->addChild(u8"");
 
-                    // 創建子節點對應的 PCnPD_Save
+                    // 創建一個處理子節點的子 PCnPD_Save
                     std::shared_ptr<PCnPD_Save> child_PCnPD_ptr = addChild(u8"");
                     if (!child_PCnPD_ptr->init(*PC_it, child_PD_ptr)) 
                         return false;
@@ -101,41 +114,58 @@ public:
     }
 };
 
-// T 為 TreeNode<> 包裹的類別，比如 PersistData_String
+// 負責將永續資料儲存容器 m_PD_ptr 中的資料，取回到 m_pPC
+// T 為 m_PD_ptr 這個永續資料儲存容器要包裹的類別，比如 PersistData_String
 template<typename T>
 class PCnPD_Load:public TreeNodeBase<PCnPD_Load<T> >
 {
-    IPersistChannel *m_pPC;
-    std::shared_ptr<TreeNode<T> > m_PD_ptr;
-    int m_lockResult;
+    IPersistChannel *m_pPC; // 具有永續資料儲存能力的物件
+    std::shared_ptr<const TreeNode<T> > m_PD_ptr; // 永續資料儲存容器
+    int m_lockResult; // m_pPC 鎖住的狀態
 
 public:
     // Constructor
+    // name 是 TreeNode<> 的要求，不具有意義
     PCnPD_Load(const std::u8string &name)
         : TreeNodeBase<PCnPD_Load<T> >(name)
     {}
 
+    // Destructor
+    virtual ~PCnPD_Load() 
+    {
+        // 有鎖住過的話就要解鎖
+        if(m_lockResult != 0)
+        {
+            m_pPC->unlockMutex();
+        }
+    }
+
     // 初始化
+    // 為 m_pPC 的子物件，找出在 m_PD_ptr 中對應的永續資料儲
+    // 存子容器，並交給子 PCnPD_Load 處理初始化
     PersistLoadResult cxxlFASTCALL init(IPersistChannel *pPC, 
-        const std::shared_ptr<TreeNode<T> > &PD_ptr)
+        const std::shared_ptr<const TreeNode<T> > &PD_ptr)
     {
         m_lockResult = pPC->lockMutex();
         if(m_lockResult == 0)
             return PersistLoadResult::NOT_LOCKABLE;
 
+        // 能鎖住才有續續的處理
         m_pPC = pPC;
         m_PD_ptr = PD_ptr;
 
         // 第一次鎖住，須繼續建立子 PCnPD_Load
+        // 否則表示 m_pPC 已處理過，不繼續處理其子物件
         if(m_lockResult == 1)
         {
-            // 取得名為 "_CLs" 的子節點，其內含有 m_pPC 的各個 IChildLinkChannel
+            // 取得儲存容器中名為 "_CLs" 的子節點，其內含有 m_pPC 的各個 IChildLinkChannel
             std::shared_ptr<TreeNode<T> > CLs_ptr = m_PD_ptr->getChild(u8"_CLs");
             if(!CLs_ptr) return PersistLoadResult::DATA_FORMAT_CORRUPT;
              
-            // m_pPC 的所有 IChildLinkChannel 
+            // m_pPC 的所有 IChildLinkChannel
             const std::list<IChildLinkChannel *>& childLink_list = m_pPC->getChildLinks();
 
+            // IChildLinkChannel 數量不一致
             if(CLs_ptr-childCount() != childLink_list.size())
                 return PersistLoadResult::DATA_NOT_MATCH;            
             
@@ -143,24 +173,28 @@ public:
             // CLs_list 的 iterator
             auto CLs_it = CLs_list.begin();
 
+            // 取出 m_pPC 的子物件和對應的永續資料儲存子容器
             for(auto link_it = childLinks.begin(); link_it != childLinks.end(); ++link_it)
             {
-                // 取得一個存放 IChildLinkChannel 的子節點，其內存放其 IPersistChannel 陣列
+                // 取得儲存容器中一個存放 IChildLinkChannel 的子節點，其內存放其 IPersistChannel 陣列
                 std::shared_ptr<TreeNode<T> > CPs_ptr = *(CLs_it++);
 
-                // 取得一個 IChildLinkChannel 包裹的 IPersistChannel
+                // 取得一個 IChildLinkChannel 包裹的 IPersistChannel 列表
                 std::list<IPersistChannel *> &PC_list = (*link_it)->getChildPersistables();
                 const std::list<std::shared_ptr<TreeNode<T> > > &CP_list = CPs_ptr->getChildren();
 
+                // IPersistChannel 的數量不一致
                 if(CP_list.size() != PC_list.size())
                     return PersistLoadResult::DATA_NOT_MATCH;
 
                 // CP_list 的 iterator
                 auto CP_it = CP_list.begin();
 
+                // 為每個 m_pPC 的子物件和對應的永續資料儲存子容器，建立
+                // 子 PCnPD_Load，並交給子 PCnPD_Load 處理初始化
                 for(auto PC_it = PC_list.begin(); PC_it != PC_list.end(); ++PC_it)
                 {
-                    // 取得存放 IPersistChannel 的子節點
+                    // 取得儲存容器中一個存放 IPersistChannel 的子節點
                     std::shared_ptr<TreeNode<T> > child_PD_ptr = *(CP_it++);
 
                     // 創建子節點對應的 PCnPD_Load

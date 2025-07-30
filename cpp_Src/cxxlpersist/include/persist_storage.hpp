@@ -116,23 +116,6 @@ namespace CXXL
         virtual std::list<IPersistChannel *>& cxxlFASTCALL getChildPersistables() const = 0;
     };
 
-
-
-    // 永續資料儲存體的介面
-    class IPersistStorage
-    {
-    public:
-        virtual ~IPersistStorage() {}
-
-        // 保存永續儲存物件的資料
-        // 若回傳值為 false 表示失敗，遇到了 pPersistable 有 null pointer 的情況
-        virtual bool cxxlFASTCALL save(IPersistChannel *pPersistable) = 0;
-
-        // 取回永續儲存物件的資料
-        // 若回傳值為 false 表示失敗
-        virtual bool cxxlFASTCALL load(IPersistChannel *pPersistable) = 0;
-    };
-
 } // namespace CXXL
 
 #endif // __CXXLPERSIST_PERSIST_STORAGE_HPP_CxxlMan3
