@@ -103,10 +103,10 @@ public:
     void cxxlFASTCALL save()
     {
         // 先保存子節點
-        const std::list<std::shared_ptr<PCnPD<T> > > &children_list = getChildren();
+        const std::list<std::shared_ptr<PCnPD_Save<T> > > &children_list = getChildren();
         for(auto child_it = children_list.begin(); child_it != children_list.end(); ++child_it)
         {
-            if(!(*child_it)->save())
+            (*child_it)->save();
         }
 
         // 再保存自己
@@ -124,6 +124,8 @@ class PCnPD_Load:public TreeNodeBase<PCnPD_Load<T> >
     IPersistChannel *m_pPC; // 具有永續資料儲存能力的物件
     std::shared_ptr<const TreeNode<T> > m_PD_ptr; // 永續資料儲存容器
     int m_lockResult; // m_pPC 鎖住的狀態
+
+    SerializeLoad<T> m_serializeLoad;
 
 public:
     // Constructor
@@ -211,7 +213,22 @@ public:
         return PersistLoadResult::SUCCESS;
     }
 
+    // 進行檢查階段，先深後廣
+    // 只有父子孫節點都檢查通過才算成功
+    bool cxxlFASTCALL check()
+    {
+        // 先檢查子節點
+        const std::list<std::shared_ptr<PCnPD_Load<T> > > &children_list = getChildren();
+        for(auto child_it = children_list.begin(); child_it != children_list.end(); ++child_it)
+        {
+            if( (*child_it)->check() == false )
+                return false;
+        }
 
+        
+
+        return true;
+    }
 
 };
 

@@ -152,12 +152,14 @@ struct Visitor : public ISerializeLoadVisitor
     }
 };
 
+// ISerializeLoad 的實作
+// PD: 為永續資料儲存容器包裹的類別，比如 PersistData_String
 template <typename PD>
 class SerializeLoad : public ISerializeLoad
 {
-    std::shared<TreeNode<PD> > m_PD_ptr;
+    std::shared<TreeNode<PD> > m_ATTRs_ptr; // 存放永續資料容器的 "_ATTRs" 子節點
 
-    // 存放物件本身所有原始永續資料，由 m_PD_ptr 取得
+    // 存放物件本身所有原始永續資料，在檢查階段從 m_ATTRs_ptr 取得
     std::vector<PersistData_SrcBase> m_PD_srcs;
 
     // m_PD_srcs 的 iterator
@@ -175,7 +177,7 @@ class SerializeLoad : public ISerializeLoad
         // 將 m_index 轉成字串
         std::u8string index_str = std::to_string(m_index++);        
 
-        std::shared_ptr<TreeNode<PD> > PD_ptr = m_PD_ptr->findChildByName(index_str + u8'.' + name);
+        std::shared_ptr<TreeNode<PD> > PD_ptr = m_ATTRs_ptr->findChildByName(index_str + u8'.' + name);
         if(!PD_ptr) return SerializeLoadResult::CHK_FAILED; // 沒有指定名稱的子節點
 
         // 取得子節點的永續資料
@@ -223,8 +225,8 @@ class SerializeLoad : public ISerializeLoad
 
 
 public:
-    SerializeLoad(std::shared_ptr<const TreeNode<PersistData_String> > PD_ptr) 
-        : m_PD_ptr(PD_ptr)
+    SerializeLoad(std::shared_ptr<const TreeNode<PersistData_String> > ATTRs_ptr) 
+        : m_ATTRs_ptr(ATTRs_ptr)
     {}
 
     virtual ~SerializeLoad() {}
@@ -242,6 +244,7 @@ public:
     { 
         m_mode = Mode::Load;
         m_PD_srcs_it = m_PD_srcs.begin();
+        //m_index = 0;
     }
     
 };

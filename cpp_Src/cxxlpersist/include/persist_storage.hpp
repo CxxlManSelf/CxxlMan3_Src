@@ -57,7 +57,7 @@ namespace CXXL
         virtual ~ISerializeLoad() {}
 
         // 是否處於檢查階段
-        virtual bool cxxlFASTCALL isChecking() = 0;
+        // virtual bool cxxlFASTCALL isChecking() = 0;
 
         
         // p: 用來獲得永續資料陣列，檢查階段不會用到
@@ -65,9 +65,7 @@ namespace CXXL
         //        在檢查階段用來指定要檢查的永續資料長度，若指定為 0 表示不檢查
         // name: 要讀取的永續資料名稱，只有在檢查階段才有意義
         //
-        // 只有在檢查階段回傳值才有意義，讀取階段永遠回傳 true
-        // 只要有一個失敗 IPersistable::Load() 就應回傳 false
-        // 必須所有父子孫物皆傳回 true，才會進入讀取階段
+        // 若無資料 p 會指向 nullptr，count 會為 0
         virtual SerializeLoadResult cxxlFASTCALL operator()(char8_t **p, size_t &count, const std::u8string &name) = 0;
         virtual SerializeLoadResult cxxlFASTCALL operator()(std::int8_t **p, size_t &count, const std::u8string &name) = 0;
         virtual SerializeLoadResult cxxlFASTCALL operator()(std::int16_t **p, size_t &count, const std::u8string &name) = 0;
@@ -101,10 +99,10 @@ namespace CXXL
         // lockMutex() 失敗絕對不能呼叫
         virtual void cxxlFASTCALL unlockMutex() = 0;
 
-        // 只要有一個使用 ISerializeSave& 儲存失敗就應回傳 false
-        virtual bool cxxlFASTCALL save(ISerializeSave &) = 0;
+        virtual void cxxlFASTCALL save(ISerializeSave &SS) = 0;
 
-        virtual bool cxxlFASTCALL load(const ISerializeLoad &) = 0;
+        // 只要有一個使用 SL 得到 SerializeLoadResult::CHK_FAILED 回覆，就應回傳 false
+        virtual bool cxxlFASTCALL load(const ISerializeLoad &SL) = 0;
     };
 
     // 和 _ChildLink 的溝通介面
