@@ -167,7 +167,7 @@ namespace CXXL
         // count: 永續資料陣列的元素數量
         // values: 永續資料陣列
         template <typename T>
-        PersistData_String(std::size_t count, const T *values)
+        PersistData_String(const T *values, std::size_t count)
         {            
             // 將 values 陣列中的元素一個個轉為數值字串
             // 並以空格分隔

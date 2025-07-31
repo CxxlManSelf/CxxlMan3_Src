@@ -15,31 +15,31 @@
 namespace CXXL
 {
 
+// ISerializeSave 的實作
+// PD: 為永續資料儲存容器包裹的類別，比如 PersistData_String
 template <typename PD>    
 class SerializeSave:public ISerializeSave
 {
-    std::shared<TreeNode<PD> > m_PD_ptr;
+    std::shared<TreeNode<PD> > m_ATTRs_ptr; // 存放永續資料容器的 "_ATTRs" 子節點
 
-    size_t m_index = 0; // 作為名稱的一部分
+    size_t m_index = 0; // 作為名稱的一部分，以免出現重複的名稱
 
 
     template <typename T>
-    void cxxlFASTCALL Save(T *p, size_t count, const std::u8string &name)
+    void cxxlFASTCALL _save(T *p, size_t count, const std::u8string &name)
     {
-        if(p == nullptr) return false;
-
         // 將 m_index 轉成字串
         std::u8string index_str = std::to_string(m_index++);        
 
-        std::shared_ptr<TreeNode<PD> > PD_ptr = m_PD_ptr->addChild(index_str + u8'.' + name);
-        // if(!PD_ptr) return false; // 加了編號不可能發生
+        std::shared_ptr<TreeNode<PD> > PD_ptr = m_ATTRs_ptr->addChild(index_str + u8'.' + name);
 
-        PD_ptr->setData({count, p});
+        if(p == nullptr) return;
+        PD_ptr->setData({p, count});
     }
 
     virtual void cxxlFASTCALL operator()(char8_t *p, size_t count, const std::u8string &name) override
     {
-        Save(p, count, name);
+        _save(p, count, name);
     }
 
     virtual void cxxlFASTCALL operator()(std::int8_t *p, size_t count, const std::u8string &name) = 0;
@@ -56,15 +56,12 @@ class SerializeSave:public ISerializeSave
 
 public:
     // Constructor
-    SerializeSave(std::shared<TreeNode<PD> > PD_ptr) 
-        : m_PD_ptr(PD_ptr)
+    SerializeSave(std::shared<TreeNode<PD> > ATTRs_ptr) 
+        : m_ATTRs_ptr(ATTRs_ptr)
     {}
 
     // Destructor
     virtual ~SerializeSave() {}
-
-    //  ISerializeSave  (p, count, name)   name  ,  p  count   
-    virtual bool operator()(std::int8_t *p, size_t count, const std::u8string &name) = 0;
 };
 
 } // namespace CXXL

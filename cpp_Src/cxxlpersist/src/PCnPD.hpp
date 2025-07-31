@@ -103,14 +103,16 @@ public:
     void cxxlFASTCALL save()
     {
         // 先保存子節點
-        const std::list<std::shared_ptr<PCnPD<T> > > &childrens = getChildren();
-        for(auto child_it = childrens.begin(); child_it != childrens.end(); ++child_it)
+        const std::list<std::shared_ptr<PCnPD<T> > > &children_list = getChildren();
+        for(auto child_it = children_list.begin(); child_it != children_list.end(); ++child_it)
         {
             if(!(*child_it)->save())
         }
 
         // 再保存自己
-        m_pPC->save( SerializeSave<T>(m_PD_ptr) );
+
+        // 儲存容器中新增一個名為 "_ATTRs" 的子節點，用來保存 m_pPC 的屬性       
+        m_pPC->save( SerializeSave<T>(m_PD_ptr->addChild(u8"_ATTRs")) );
     }
 };
 
