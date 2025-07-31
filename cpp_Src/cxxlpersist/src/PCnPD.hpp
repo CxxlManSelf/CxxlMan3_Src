@@ -225,9 +225,31 @@ public:
                 return false;
         }
 
-        
+        // 再檢查自己
 
-        return true;
+        // 從儲存容器中名為 "_ATTRs" 的子節點，取得 m_pPC 保存的屬性
+        std::shared_ptr<const TreeNode<T> > ATTRs_ptr = m_PD_ptr->getChild(u8"_ATTRs");
+        if(ATTRs_ptr == nullptr) 
+            return false;
+
+        m_serializeLoad.setPD(ATTRs_ptr);
+
+        return m_pPC->load( m_serializeLoad );
+    }
+
+    // 執行讀取階段，先深後廣    
+    void cxxlFASTCALL load()
+    {
+        // 先讀取子節點
+        const std::list<std::shared_ptr<PCnPD_Load<T> > > &children_list = getChildren();
+        for(auto child_it = children_list.begin(); child_it != children_list.end(); ++child_it)
+        {
+            (*child_it)->load();
+        }
+
+        // 再讀取自己
+        m_serializeLoad.setLoadMode();
+        m_pPC->load( m_serializeLoad );
     }
 
 };

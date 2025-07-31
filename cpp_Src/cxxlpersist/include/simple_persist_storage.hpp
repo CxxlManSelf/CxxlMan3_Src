@@ -210,7 +210,7 @@ namespace CXXL
         NOT_LOCKABLE, // 讀取失敗，因為 pPersistable 或其子孫物件中不能被鎖定
         DATA_FORMAT_CORRUPT, // 讀取失敗，因為 PD_ptr 指定的資料格式錯誤或毀損
         DATA_NOT_MATCH,  // 讀取失敗，因為 PD_ptr 指定的資料不屬於 pPersistable
-
+        LOAD_FAILED // 讀取失敗，因為永續儲存的 Load 檢查失敗
 
     };
 

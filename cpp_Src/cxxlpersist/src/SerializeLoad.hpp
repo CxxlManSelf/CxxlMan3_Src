@@ -19,9 +19,15 @@
 namespace CXXL
 {
 
+// 包裹原始永緒資料型別的資料陣列
 template <typename T>
 struct PersistData_Src;
 
+// 防問者模式中的防問者
+// 提供對不同的 PersistData_Src<> 的 visit() 處理
+// 不過由延伸類別才針對正確的 visit() 做處理
+// 對不正確的 PersistData_Src<> 由本類別的 visit() 做處理
+// 處理方式為結束掉程式
 class ISerializeLoadVisitor
 {
 public:
@@ -134,7 +140,8 @@ struct PersistData_Src : public PersistData_SrcBase
     }
 };
 
-// 實作 visitor
+// 正確的實作 visitor
+// 由 class SerializeLoad 選用正確的 visitor
 template <typename T>
 struct Visitor : public ISerializeLoadVisitor
 {
@@ -194,11 +201,12 @@ class SerializeLoad : public ISerializeLoad
 
     virtual SerializeLoadResult cxxlFASTCALL operator()(char8_t **p, size_t &count, const std::u8string &name) override
     {
-        if(m_mode == Mode::Check) 
+        if(m_mode == Mode::Check) // 檢查階段
             return check<char8_t>(count, name);
-        else if(m_PD_srcs_it != m_PD_srcs.end())
+        else if(m_PD_srcs_it != m_PD_srcs.end()) // 讀取階段
         {
-            Visitor<char8_t> visitor(p, count);
+            // 選用正確的 visitor 來取得原始永續資料
+            Visitor<char8_t> visitor(p, count); 
             (m_PD_srcs_it++)->accept(visitor);
         }
         else // 已無資料可讀取
@@ -225,11 +233,16 @@ class SerializeLoad : public ISerializeLoad
 
 
 public:
-    SerializeLoad(std::shared_ptr<const TreeNode<PersistData_String> > ATTRs_ptr) 
-        : m_ATTRs_ptr(ATTRs_ptr)
+    SerializeLoad() 
     {}
 
-    virtual ~SerializeLoad() {}
+    virtual ~SerializeLoad() 
+    {}
+
+    void cxxlFASTCALL setPD(std::shared_ptr<const TreeNode<PD> > &ATTRs_ptr)
+    {
+        m_ ATTRs_ptr = ATTRs_ptr;
+    }
 
     virtual bool cxxlFASTCALL load(std::float64_t *p, size_t count, const std::u8string &name) override
     {

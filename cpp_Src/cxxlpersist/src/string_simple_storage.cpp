@@ -49,7 +49,14 @@ PersistLoadResult cxxlFASTCALL simpPersist_load(IPersistChannel *pPersistable,
         return initResult;
     }
 
+    if(PCnPD_root.check() == false)
+    {
+        return PersistLoadResult::LOAD_FAILED;
+    }
+
+    PCnPD_root.load();
         
+    return PersistLoadResult::SUCCESS;
 }
 
 
