@@ -20,7 +20,7 @@ namespace CXXL
 template <typename PD>    
 class SerializeSave:public ISerializeSave
 {
-    std::shared<TreeNode<PD> > m_ATTRs_ptr; // 存放永續資料容器的 "_ATTRs" 子節點
+    std::shared_ptr<TreeNode<PD> > m_ATTRs_ptr; // 存放永續資料容器的 "_ATTRs" 子節點
 
     size_t m_index = 0; // 作為名稱的一部分，以免出現重複的名稱
 
@@ -29,7 +29,9 @@ class SerializeSave:public ISerializeSave
     void cxxlFASTCALL _save(T *p, size_t count, const std::u8string &name)
     {
         // 將 m_index 轉成字串
-        std::u8string index_str = std::to_string(m_index++);        
+        std::string temp_str = std::to_string(m_index++);
+        std::u8string index_str(reinterpret_cast<const char8_t*>(temp_str.c_str()), 
+                        temp_str.length());
 
         std::shared_ptr<TreeNode<PD> > PD_ptr = m_ATTRs_ptr->addChild(index_str + u8'.' + name);
 
@@ -42,21 +44,60 @@ class SerializeSave:public ISerializeSave
         _save(p, count, name);
     }
 
-    virtual void cxxlFASTCALL operator()(std::int8_t *p, size_t count, const std::u8string &name) = 0;
-    virtual void cxxlFASTCALL operator()(std::int16_t *p, size_t count, const std::u8string &name) = 0;
-    virtual void cxxlFASTCALL operator()(std::int32_t *p, size_t count, const std::u8string &name) = 0;
-    virtual void cxxlFASTCALL operator()(std::int64_t *p, size_t count, const std::u8string &name) = 0;
-    virtual void cxxlFASTCALL operator()(std::uint8_t *p, size_t count, const std::u8string &name) = 0;
-    virtual void cxxlFASTCALL operator()(std::uint16_t *p, size_t count, const std::u8string &name) = 0;
-    virtual void cxxlFASTCALL operator()(std::uint32_t *p, size_t count, const std::u8string &name) = 0;
-    virtual void cxxlFASTCALL operator()(std::uint64_t *p, size_t count, const std::u8string &name) = 0;
-    virtual void cxxlFASTCALL operator()(std::float32_t *p, size_t count, const std::u8string &name) = 0;
-    virtual void cxxlFASTCALL operator()(std::float64_t *p, size_t count, const std::u8string &name) = 0;
-    virtual void cxxlFASTCALL operator()(std::float128_t *p, size_t count, const std::u8string &name) = 0;
+    virtual void cxxlFASTCALL operator()(std::int8_t *p, size_t count, const std::u8string &name) override
+    {
+        _save(p, count, name);
+    }
+
+    virtual void cxxlFASTCALL operator()(std::int16_t *p, size_t count, const std::u8string &name) override
+    {
+        _save(p, count, name);
+    }
+
+    virtual void cxxlFASTCALL operator()(std::int32_t *p, size_t count, const std::u8string &name) override
+    {
+        _save(p, count, name);
+    }
+
+    virtual void cxxlFASTCALL operator()(std::int64_t *p, size_t count, const std::u8string &name) override
+    {
+        _save(p, count, name);
+    }
+
+    virtual void cxxlFASTCALL operator()(std::uint8_t *p, size_t count, const std::u8string &name) override
+    {
+        _save(p, count, name);
+    }
+
+    virtual void cxxlFASTCALL operator()(std::uint16_t *p, size_t count, const std::u8string &name) override
+    {
+        _save(p, count, name);
+    }
+
+    virtual void cxxlFASTCALL operator()(std::uint32_t *p, size_t count, const std::u8string &name) override
+    {
+        _save(p, count, name);
+    }
+    virtual void cxxlFASTCALL operator()(std::uint64_t *p, size_t count, const std::u8string &name) override
+    {
+        _save(p, count, name);
+    }
+    virtual void cxxlFASTCALL operator()(std::float32_t *p, size_t count, const std::u8string &name) override
+    {
+        _save(p, count, name);
+    }
+    virtual void cxxlFASTCALL operator()(std::float64_t *p, size_t count, const std::u8string &name) override
+    {
+        _save(p, count, name);
+    }
+    virtual void cxxlFASTCALL operator()(std::float128_t *p, size_t count, const std::u8string &name) override
+    {
+        _save(p, count, name);
+    }
 
 public:
     // Constructor
-    SerializeSave(std::shared<TreeNode<PD> > ATTRs_ptr) 
+    SerializeSave(std::shared_ptr<TreeNode<PD> > ATTRs_ptr) 
         : m_ATTRs_ptr(ATTRs_ptr)
     {}
 

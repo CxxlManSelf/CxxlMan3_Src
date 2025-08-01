@@ -120,27 +120,6 @@ namespace CXXL
             std::make_shared<TreeNode<std::u8string> >(std::u8string()));
     };
 
-
-    // 提供一個簡易版的 IPersistStorage 實作
-    class ISimplePersistStorage : public IPersistStorage
-    {
-    protected:
-        ISimplePersistStorage() = default;
-
-    public:
-        virtual ~ISimplePersistStorage() {}
-
-        virtual bool cxxlFASTCALL save(IPersistChannel *pPersistable) override;
-        virtual bool cxxlFASTCALL load(IPersistChannel *pPersistable) override;
-
-        virtual std::shared_ptr<ISimplePersistContainer>
-            cxxlFASTCALL getSimplePersistContainer() const = 0;
-
-        static std::shared_ptr<IPersistStorage>
-            CXXLPERSIST_DLLEXPORT create(const std::shared_ptr<ISimplePersistContainer> &container_ptr = 
-                ISimplePersistContainer_StringTreeNode::create());
-    };
-
     
     // 這個類別在存放 IPersistChannel 和 ISimplePersistContainer 兩者的實作物件指標
     // 並提供兩者之間的操作
@@ -158,6 +137,13 @@ namespace CXXL
     struct PersistData_String
     {
         std::string m_values; // 永續資料陣列，以空格分隔
+
+
+        // default constructor
+        PersistData_String() = default;
+
+        // copy constructor
+        PersistData_String(const PersistData_String &other) = default;
 
         // move constructor
         PersistData_String(PersistData_String &&other) noexcept
@@ -183,7 +169,7 @@ namespace CXXL
         template <typename T> 
         std::vector<T> cxxlFASTCALL get() const
         {
-            std::stringstream ss(this->values);
+            std::stringstream ss(this->m_values);
 
             std::vector<T> values;
             T value;

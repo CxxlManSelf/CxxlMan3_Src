@@ -13,6 +13,7 @@
 
 #include <iostream> // std::cerr
 #include <cstdlib> // exit
+#include <vector>
 
 #include <persist_storage.hpp>
 
@@ -164,7 +165,7 @@ struct Visitor : public ISerializeLoadVisitor
 template <typename PD>
 class SerializeLoad : public ISerializeLoad
 {
-    std::shared<TreeNode<PD> > m_ATTRs_ptr; // 存放永續資料容器的 "_ATTRs" 子節點
+    std::shared_ptr<const TreeNode<PD> > m_ATTRs_ptr; // 存放永續資料容器的 "_ATTRs" 子節點
 
     // 存放物件本身所有原始永續資料，在檢查階段從 m_ATTRs_ptr 取得
     std::vector<PersistData_SrcBase> m_PD_srcs;
@@ -182,14 +183,17 @@ class SerializeLoad : public ISerializeLoad
     SerializeLoadResult cxxlFASTCALL check(size_t count, const std::u8string &name)
     {
         // 將 m_index 轉成字串
-        std::u8string index_str = std::to_string(m_index++);        
+        std::string temp_str = std::to_string(m_index++);
+        std::u8string index_str(reinterpret_cast<const char8_t*>(temp_str.c_str()), 
+                        temp_str.length());
 
         std::shared_ptr<TreeNode<PD> > PD_ptr = m_ATTRs_ptr->findChildByName(index_str + u8'.' + name);
         if(!PD_ptr) return SerializeLoadResult::CHK_FAILED; // 沒有指定名稱的子節點
 
         // 取得子節點的永續資料
-        PD pd = PD_ptr->getData();         
-        std::vectot<T> values = pd.get();
+        PD pd = PD_ptr->getData();
+        std::vector<T> values;
+        pd.get<T>();
 
         if(count > 0 && values.size() != count) return SerializeLoadResult::CHK_FAILED; // 數量不一樣
 
@@ -219,17 +223,226 @@ class SerializeLoad : public ISerializeLoad
         return SerializeLoadResult::LOAD_SUCCESS;
     }
 
-    virtual SerializeLoadResult cxxlFASTCALL operator()(std::int8_t **p, size_t &count, const std::u8string &name) = 0;
-    virtual SerializeLoadResult cxxlFASTCALL operator()(std::int16_t **p, size_t &count, const std::u8string &name) = 0;
-    virtual SerializeLoadResult cxxlFASTCALL operator()(std::int32_t **p, size_t &count, const std::u8string &name) = 0;
-    virtual SerializeLoadResult cxxlFASTCALL operator()(std::int64_t **p, size_t &count, const std::u8string &name) = 0;
-    virtual SerializeLoadResult cxxlFASTCALL operator()(std::uint8_t **p, size_t &count, const std::u8string &name) = 0;
-    virtual SerializeLoadResult cxxlFASTCALL operator()(std::uint16_t **p, size_t &count, const std::u8string &name) = 0;
-    virtual SerializeLoadResult cxxlFASTCALL operator()(std::uint32_t **p, size_t &count, const std::u8string &name) = 0;
-    virtual SerializeLoadResult cxxlFASTCALL operator()(std::uint64_t **p, size_t &count, const std::u8string &name) = 0;
-    virtual SerializeLoadResult cxxlFASTCALL operator()(std::float32_t **p, size_t &count, const std::u8string &name) = 0;
-    virtual SerializeLoadResult cxxlFASTCALL operator()(std::float64_t **p, size_t &count, const std::u8string &name) = 0;
-    virtual SerializeLoadResult cxxlFASTCALL operator()(std::float128_t **p, size_t &count, const std::u8string &name) = 0;
+    virtual SerializeLoadResult cxxlFASTCALL operator()(std::int8_t **p, size_t &count, const std::u8string &name) override
+    {
+        if(m_mode == Mode::Check) // 檢查階段
+            return check<std::int8_t>(count, name);
+        else if(m_PD_srcs_it != m_PD_srcs.end()) // 讀取階段
+        {
+            // 選用正確的 visitor 來取得原始永續資料
+            Visitor<std::int8_t> visitor(p, count); 
+            (m_PD_srcs_it++)->accept(visitor);
+        }
+        else // 已無資料可讀取
+        {
+            // 永續資料存取不對等
+            std::cerr << "SerializeLoad: Persistent data access not match" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+
+        return SerializeLoadResult::LOAD_SUCCESS;
+    }
+
+    virtual SerializeLoadResult cxxlFASTCALL operator()(std::int16_t **p, size_t &count, const std::u8string &name) override
+    {
+        if(m_mode == Mode::Check) // 檢查階段
+            return check<std::int16_t>(count, name);
+        else if(m_PD_srcs_it != m_PD_srcs.end()) // 讀取階段
+        {
+            // 選用正確的 visitor 來取得原始永續資料
+            Visitor<std::int16_t> visitor(p, count); 
+            (m_PD_srcs_it++)->accept(visitor);
+        }
+        else // 已無資料可讀取
+        {
+            // 永續資料存取不對等
+            std::cerr << "SerializeLoad: Persistent data access not match" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+
+        return SerializeLoadResult::LOAD_SUCCESS;
+    }
+
+    virtual SerializeLoadResult cxxlFASTCALL operator()(std::int32_t **p, size_t &count, const std::u8string &name) override
+    {
+        if(m_mode == Mode::Check) // 檢查階段
+            return check<std::int32_t>(count, name);
+        else if(m_PD_srcs_it != m_PD_srcs.end()) // 讀取階段
+        {
+            // 選用正確的 visitor 來取得原始永續資料
+            Visitor<std::int32_t> visitor(p, count); 
+            (m_PD_srcs_it++)->accept(visitor);
+        }
+        else // 已無資料可讀取
+        {
+            // 永續資料存取不對等
+            std::cerr << "SerializeLoad: Persistent data access not match" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+
+        return SerializeLoadResult::LOAD_SUCCESS;
+    }
+
+    virtual SerializeLoadResult cxxlFASTCALL operator()(std::int64_t **p, size_t &count, const std::u8string &name) override
+    {
+        if(m_mode == Mode::Check) // 檢查階段
+            return check<std::int64_t>(count, name);
+        else if(m_PD_srcs_it != m_PD_srcs.end()) // 讀取階段
+        {
+            // 選用正確的 visitor 來取得原始永續資料
+            Visitor<std::int64_t> visitor(p, count); 
+            (m_PD_srcs_it++)->accept(visitor);
+        }
+        else // 已無資料可讀取
+        {
+            // 永續資料存取不對等
+            std::cerr << "SerializeLoad: Persistent data access not match" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+
+        return SerializeLoadResult::LOAD_SUCCESS;
+    }
+
+    virtual SerializeLoadResult cxxlFASTCALL operator()(std::uint8_t **p, size_t &count, const std::u8string &name) override
+    {
+        if(m_mode == Mode::Check) // 檢查階段
+            return check<std::uint8_t>(count, name);
+        else if(m_PD_srcs_it != m_PD_srcs.end()) // 讀取階段
+        {
+            // 選用正確的 visitor 來取得原始永續資料
+            Visitor<std::uint8_t> visitor(p, count); 
+            (m_PD_srcs_it++)->accept(visitor);
+        }
+        else // 已無資料可讀取
+        {
+            // 永續資料存取不對等
+            std::cerr << "SerializeLoad: Persistent data access not match" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+
+        return SerializeLoadResult::LOAD_SUCCESS;
+    }
+
+    virtual SerializeLoadResult cxxlFASTCALL operator()(std::uint16_t **p, size_t &count, const std::u8string &name) override
+    {
+        if(m_mode == Mode::Check) // 檢查階段
+            return check<std::uint16_t>(count, name);
+        else if(m_PD_srcs_it != m_PD_srcs.end()) // 讀取階段
+        {
+            // 選用正確的 visitor 來取得原始永續資料
+            Visitor<std::uint16_t> visitor(p, count); 
+            (m_PD_srcs_it++)->accept(visitor);
+        }
+        else // 已無資料可讀取
+        {
+            // 永續資料存取不對等
+            std::cerr << "SerializeLoad: Persistent data access not match" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+
+        return SerializeLoadResult::LOAD_SUCCESS;
+    }
+
+    virtual SerializeLoadResult cxxlFASTCALL operator()(std::uint32_t **p, size_t &count, const std::u8string &name) override
+    {
+        if(m_mode == Mode::Check) // 檢查階段
+            return check<std::uint32_t>(count, name);
+        else if(m_PD_srcs_it != m_PD_srcs.end()) // 讀取階段
+        {
+            // 選用正確的 visitor 來取得原始永續資料
+            Visitor<std::uint32_t> visitor(p, count); 
+            (m_PD_srcs_it++)->accept(visitor);
+        }
+        else // 已無資料可讀取
+        {
+            // 永續資料存取不對等
+            std::cerr << "SerializeLoad: Persistent data access not match" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+
+        return SerializeLoadResult::LOAD_SUCCESS;
+    }
+
+    virtual SerializeLoadResult cxxlFASTCALL operator()(std::uint64_t **p, size_t &count, const std::u8string &name) override
+    {
+        if(m_mode == Mode::Check) // 檢查階段
+            return check<std::uint64_t>(count, name);
+        else if(m_PD_srcs_it != m_PD_srcs.end()) // 讀取階段
+        {
+            // 選用正確的 visitor 來取得原始永續資料
+            Visitor<std::uint64_t> visitor(p, count); 
+            (m_PD_srcs_it++)->accept(visitor);
+        }
+        else // 已無資料可讀取
+        {
+            // 永續資料存取不對等
+            std::cerr << "SerializeLoad: Persistent data access not match" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+
+        return SerializeLoadResult::LOAD_SUCCESS;
+    }
+
+    virtual SerializeLoadResult cxxlFASTCALL operator()(std::float32_t **p, size_t &count, const std::u8string &name) override
+    {
+        if(m_mode == Mode::Check) // 檢查階段
+            return check<std::float32_t>(count, name);
+        else if(m_PD_srcs_it != m_PD_srcs.end()) // 讀取階段
+        {
+            // 選用正確的 visitor 來取得原始永續資料
+            Visitor<std::float32_t> visitor(p, count); 
+            (m_PD_srcs_it++)->accept(visitor);
+        }
+        else // 已無資料可讀取
+        {
+            // 永續資料存取不對等
+            std::cerr << "SerializeLoad: Persistent data access not match" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+
+        return SerializeLoadResult::LOAD_SUCCESS;
+    }
+
+    virtual SerializeLoadResult cxxlFASTCALL operator()(std::float64_t **p, size_t &count, const std::u8string &name) override
+    {
+        if(m_mode == Mode::Check) // 檢查階段
+            return check<std::float64_t>(count, name);
+        else if(m_PD_srcs_it != m_PD_srcs.end()) // 讀取階段
+        {
+            // 選用正確的 visitor 來取得原始永續資料
+            Visitor<std::float64_t> visitor(p, count); 
+            (m_PD_srcs_it++)->accept(visitor);
+        }
+        else // 已無資料可讀取
+        {
+            // 永續資料存取不對等
+            std::cerr << "SerializeLoad: Persistent data access not match" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+
+        return SerializeLoadResult::LOAD_SUCCESS;
+    }
+
+    virtual SerializeLoadResult cxxlFASTCALL operator()(std::float128_t **p, size_t &count, const std::u8string &name) override
+    {
+        if(m_mode == Mode::Check) // 檢查階段
+            return check<std::float128_t>(count, name);
+        else if(m_PD_srcs_it != m_PD_srcs.end()) // 讀取階段
+        {
+            // 選用正確的 visitor 來取得原始永續資料
+            Visitor<std::float128_t> visitor(p, count); 
+            (m_PD_srcs_it++)->accept(visitor);
+        }
+        else // 已無資料可讀取
+        {
+            // 永續資料存取不對等
+            std::cerr << "SerializeLoad: Persistent data access not match" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+
+        return SerializeLoadResult::LOAD_SUCCESS;
+    }
+
 
 
 public:
@@ -239,25 +452,15 @@ public:
     virtual ~SerializeLoad() 
     {}
 
-    void cxxlFASTCALL setPD(std::shared_ptr<const TreeNode<PD> > &ATTRs_ptr)
+    void cxxlFASTCALL setPD(std::shared_ptr<TreeNode<PD> > &ATTRs_ptr)
     {
-        m_ ATTRs_ptr = ATTRs_ptr;
-    }
-
-    virtual bool cxxlFASTCALL load(std::float64_t *p, size_t count, const std::u8string &name) override
-    {
-        std::shared_ptr<const TreeNode<PersistData_String> > PDroot_ptr = m_PD_ptr->findChildByName(name);
-        if(!PDroot_ptr)
-            return false;
-
-        return PDroot_ptr->getData({count, p});
+        m_ATTRs_ptr = ATTRs_ptr;
     }
 
     void cxxlFASTCALL setLoadMode() 
     { 
         m_mode = Mode::Load;
         m_PD_srcs_it = m_PD_srcs.begin();
-        //m_index = 0;
     }
     
 };

@@ -29,7 +29,7 @@ namespace CXXL
 
     class IPersistable;
 
-    template <typename T, typename HOLDER>
+    template <typename T>
     class ChildLinkSet;
 
 
@@ -42,20 +42,8 @@ namespace CXXL
         // 負責和儲存體溝通
         class _Persistable : public IPersistChannel
         {
-            // Save 序列化狀態:
-            //  0: 未序列化
+            //  0: 未序列化鎖住 mutex
             //  1: mutex 鎖定中
-            //  2: 完成序列化 Save            
-            //  3: 失敗
-            // 不管成功失敗都會 mutex 解除鎖定，並將 m_SerializeState 設為 0
-            //
-            // Load 序列化狀態:
-            //  0: 未序列化
-            //  1: mutex 鎖定中
-            //  2: Load 檢查成功
-            //  3: Load 檢查失敗
-            //  4: 完成序列化 Load
-            // 不管成功失敗都會 mutex 解除鎖定，並將 m_SerializeState 設為 0            
             int8_t m_SerializeState = 0;
 
             // lock 失敗回覆 0
@@ -116,7 +104,7 @@ namespace CXXL
 
         friend class IPersistable;
 
-        template <typename T, typename HOLDER>
+        template <typename T>
         friend class ChildLinkSet;
 
     };
@@ -129,16 +117,14 @@ namespace CXXL
     {
     protected:
         // 執行 Save 永續儲存
-        // 回傳值為 false 表示遇到 null pointer 的情況
-        // 只要有一個失敗就應回傳 false
-        virtual bool cxxlFASTCALL
-        Save(ISerializeSave *pSerialize) = 0;
+        virtual void cxxlFASTCALL
+        Save(ISerializeSave &save) = 0;
 
         // 執行 Load 永續儲存
         // 回傳值為 false 表示失敗，pPersistable 的資料不會改變
-        // 只要有一個失敗就應回傳 false
+        // 只要有一個使用 load 得到 SerializeLoadResult::CHK_FAILED 回覆，就應回傳 false
         virtual bool cxxlFASTCALL
-        Load(ISerializeLoad *pSerialize) = 0;
+        Load(ISerializeLoad &load) = 0;
 
         // IPersistable 延伸類別須用此 mutex
         // 是一個 std::recursive_mutex
@@ -155,7 +141,6 @@ namespace CXXL
 
     // 一個父 IPersistable 和多個子 IPersistable 的連接關係
     // 用於包含 0 至多個子 IPersistable 延伸類別
-    // 注意：若包含有 null 將不能被永續儲存
     template <typename T>
     class ChildLinkSet : public PersistResourcePrivate::_ChildLink
     {

@@ -15,6 +15,7 @@
 #include <string>
 
 #include "sysdef.hpp"
+#include <treenode.hpp>
 
 namespace CXXL
 {
