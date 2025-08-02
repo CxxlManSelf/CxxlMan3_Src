@@ -26,7 +26,7 @@ class SerializeSave:public ISerializeSave
 
 
     template <typename T>
-    void cxxlFASTCALL _save(T *p, size_t count, const std::u8string &name)
+    void cxxlFASTCALL _save(const T *p, size_t count, const std::u8string &name)
     {
         // 將 m_index 轉成字串
         std::string temp_str = std::to_string(m_index++);
@@ -39,61 +39,63 @@ class SerializeSave:public ISerializeSave
         PD_ptr->setData({p, count});
     }
 
-    virtual void cxxlFASTCALL operator()(char8_t *p, size_t count, const std::u8string &name) override
+    virtual void cxxlFASTCALL operator()(const char8_t *p, size_t count, const std::u8string &name) override
+    {
+        // _save(p, count, name); // C++ 標準程式庫不支援 char8_t
+        _save((const char*)p, count, name);
+    }
+/*
+    virtual void cxxlFASTCALL operator()(const std::int8_t *p, size_t count, const std::u8string &name) override
     {
         _save(p, count, name);
     }
 
-    virtual void cxxlFASTCALL operator()(std::int8_t *p, size_t count, const std::u8string &name) override
+    virtual void cxxlFASTCALL operator()(const std::int16_t *p, size_t count, const std::u8string &name) override
     {
         _save(p, count, name);
     }
 
-    virtual void cxxlFASTCALL operator()(std::int16_t *p, size_t count, const std::u8string &name) override
+    virtual void cxxlFASTCALL operator()(const std::int32_t *p, size_t count, const std::u8string &name) override
     {
         _save(p, count, name);
     }
 
-    virtual void cxxlFASTCALL operator()(std::int32_t *p, size_t count, const std::u8string &name) override
+    virtual void cxxlFASTCALL operator()(const std::int64_t *p, size_t count, const std::u8string &name) override
     {
         _save(p, count, name);
     }
 
-    virtual void cxxlFASTCALL operator()(std::int64_t *p, size_t count, const std::u8string &name) override
+    virtual void cxxlFASTCALL operator()(const std::uint8_t *p, size_t count, const std::u8string &name) override
     {
         _save(p, count, name);
     }
 
-    virtual void cxxlFASTCALL operator()(std::uint8_t *p, size_t count, const std::u8string &name) override
+    virtual void cxxlFASTCALL operator()(const std::uint16_t *p, size_t count, const std::u8string &name) override
     {
         _save(p, count, name);
     }
 
-    virtual void cxxlFASTCALL operator()(std::uint16_t *p, size_t count, const std::u8string &name) override
+    virtual void cxxlFASTCALL operator()(const std::uint32_t *p, size_t count, const std::u8string &name) override
     {
         _save(p, count, name);
     }
-
-    virtual void cxxlFASTCALL operator()(std::uint32_t *p, size_t count, const std::u8string &name) override
+    virtual void cxxlFASTCALL operator()(const std::uint64_t *p, size_t count, const std::u8string &name) override
     {
         _save(p, count, name);
     }
-    virtual void cxxlFASTCALL operator()(std::uint64_t *p, size_t count, const std::u8string &name) override
+    virtual void cxxlFASTCALL operator()(const std::float32_t *p, size_t count, const std::u8string &name) override
     {
         _save(p, count, name);
     }
-    virtual void cxxlFASTCALL operator()(std::float32_t *p, size_t count, const std::u8string &name) override
+    virtual void cxxlFASTCALL operator()(const std::float64_t *p, size_t count, const std::u8string &name) override
     {
         _save(p, count, name);
     }
-    virtual void cxxlFASTCALL operator()(std::float64_t *p, size_t count, const std::u8string &name) override
+    virtual void cxxlFASTCALL operator()(const std::float128_t *p, size_t count, const std::u8string &name) override
     {
         _save(p, count, name);
     }
-    virtual void cxxlFASTCALL operator()(std::float128_t *p, size_t count, const std::u8string &name) override
-    {
-        _save(p, count, name);
-    }
+*/
 
 public:
     // Constructor

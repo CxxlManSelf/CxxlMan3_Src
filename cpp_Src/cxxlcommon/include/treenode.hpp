@@ -18,6 +18,8 @@
 #include <string>
 #include <functional>
 
+#include <commondef.hpp>
+
 namespace CXXL
 {
     // D: 延伸類別

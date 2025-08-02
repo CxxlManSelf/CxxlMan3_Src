@@ -13,6 +13,7 @@
 #include <cstdint>
 #include <stdfloat>
 #include <memory>
+#include <sstream>
 
 #include "cxxlpersist.hpp"
 #include "persist_storage.hpp"
@@ -21,133 +22,14 @@
 namespace CXXL
 {
 
-    // ISimplePersistStorage 使用的容器介面
-    class ISimplePersistContainer
-    {
-
-    public:
-        virtual ~ISimplePersistContainer() {}
-
-        // 儲存
-        virtual void cxxlFASTCALL
-        save(char8_t *p, size_t count, const std::u8string &name) = 0;
-
-        virtual void cxxlFASTCALL
-        save(std::int8_t *p, size_t count, const std::u8string &name) = 0;
-
-        virtual void cxxlFASTCALL
-        save(std::int16_t *p, size_t count, const std::u8string &name) = 0;
-
-        virtual void cxxlFASTCALL
-        save(std::int32_t *p, size_t count, const std::u8string &name) = 0;
-
-        virtual void cxxlFASTCALL
-        save(std::int64_t *p, size_t count, const std::u8string &name) = 0;
-
-        virtual void cxxlFASTCALL
-        save(std::uint8_t *p, size_t count, const std::u8string &name) = 0;
-
-        virtual void cxxlFASTCALL
-        save(std::uint16_t *p, size_t count, const std::u8string &name) = 0;
-
-        virtual void cxxlFASTCALL
-        save(std::uint32_t *p, size_t count, const std::u8string &name) = 0;
-
-        virtual void cxxlFASTCALL
-        save(std::uint64_t *p, size_t count, const std::u8string &name) = 0;
-
-        virtual void cxxlFASTCALL
-        save(std::float32_t *p, size_t count, const std::u8string &name) = 0;
-
-        virtual void cxxlFASTCALL
-        save(std::float64_t *p, size_t count, const std::u8string &name) = 0;
-
-        virtual void cxxlFASTCALL
-        save(std::float128_t *p, size_t count, const std::u8string &name) = 0;
-
-        // 讀取
-        virtual bool cxxlFASTCALL
-        load(char8_t *p, size_t count, const std::u8string &name) = 0;
-
-        virtual bool cxxlFASTCALL
-        load(std::int8_t *p, size_t count, const std::u8string &name) = 0;
-
-        virtual bool cxxlFASTCALL
-        load(std::int16_t *p, size_t count, const std::u8string &name) = 0;
-
-        virtual bool cxxlFASTCALL
-        load(std::int32_t *p, size_t count, const std::u8string &name) = 0;
-
-        virtual bool cxxlFASTCALL
-        load(std::int64_t *p, size_t count, const std::u8string &name) = 0;
-
-        virtual bool cxxlFASTCALL
-        load(std::uint8_t *p, size_t count, const std::u8string &name) = 0;
-
-        virtual bool cxxlFASTCALL
-        load(std::uint16_t *p, size_t count, const std::u8string &name) = 0;
-
-        virtual bool cxxlFASTCALL
-        load(std::uint32_t *p, size_t count, const std::u8string &name) = 0;
-
-        virtual bool cxxlFASTCALL
-        load(std::uint64_t *p, size_t count, const std::u8string &name) = 0;
-
-        virtual bool cxxlFASTCALL
-        load(std::float32_t *p, size_t count, const std::u8string &name) = 0;
-
-        virtual bool cxxlFASTCALL
-        load(std::float64_t *p, size_t count, const std::u8string &name) = 0;
-
-        virtual bool cxxlFASTCALL
-        load(std::float128_t *p, size_t count, const std::u8string &name) = 0;
-    };
-
-    // 提供一個包裹 TreeNode<std::u8string> 的 ISimplePersistContainer 容器實作
-    class ISimplePersistContainer_StringTreeNode : public ISimplePersistContainer
-    {
-    protected:
-        ISimplePersistContainer_StringTreeNode() = default;
-
-    public:
-        virtual ~ISimplePersistContainer_StringTreeNode() {}
-
-        // 取得 TreeNode<std::string>
-        virtual std::shared_ptr<TreeNode<std::string>> cxxlFASTCALL getTreeNode() const = 0;
-
-        static std::shared_ptr<ISimplePersistContainer> CXXLPERSIST_DLLEXPORT 
-        cxxlFASTCALL create(const std::shared_ptr<TreeNode<std::u8string>> &treeNode_ptr =
-            std::make_shared<TreeNode<std::u8string> >(std::u8string()));
-    };
-
     
-    // 這個類別在存放 IPersistChannel 和 ISimplePersistContainer 兩者的實作物件指標
-    // 並提供兩者之間的操作
-    class PCnC
-    {
-    public:
-        PCnC() = default;
-        ~PCnC() = default;
-
-        std::shared_ptr<IPersistChannel> pPersistChannel_ptr;
-        std::shared_ptr<ISimplePersistContainer> pSimplePersistContainer_ptr;
-    };
 
     // 以文字方式保存永續資料
     struct PersistData_String
     {
         std::string m_values; // 永續資料陣列，以空格分隔
 
-
-        // default constructor
         PersistData_String() = default;
-
-        // copy constructor
-        PersistData_String(const PersistData_String &other) = default;
-
-        // move constructor
-        PersistData_String(PersistData_String &&other) noexcept
-            :m_values(std::move(other.m_values)) {}
 
         // Constructor
         // count: 永續資料陣列的元素數量
@@ -155,19 +37,22 @@ namespace CXXL
         template <typename T>
         PersistData_String(const T *values, std::size_t count)
         {            
+            std::stringstream ss;
             // 將 values 陣列中的元素一個個轉為數值字串
             // 並以空格分隔
             for (std::size_t i = 0; i < count; ++i)
             {
-                if(i != 0) this->m_values += " ";
+                if(i != 0) ss << ' ';
+                
+                ss << values[i];                
+            }
 
-                this->m_values += std::to_string(values[i]);
-            }            
+            this->m_values = ss.str();
         }
 
         // Getter
         template <typename T> 
-        std::vector<T> cxxlFASTCALL get() const
+        std::vector<T> cxxlFASTCALL get(void) const
         {
             std::stringstream ss(this->m_values);
 

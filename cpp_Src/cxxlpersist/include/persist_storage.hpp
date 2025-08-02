@@ -14,7 +14,7 @@
 #include <list>
 #include <string>
 
-#include "sysdef.hpp"
+#include <sysdef.hpp>
 #include <treenode.hpp>
 
 namespace CXXL
@@ -29,18 +29,20 @@ namespace CXXL
 
         // 回傳值為 false 表示名稱未指定或已存在或是 p 為 null
         // 只要有一個失敗，IPersistable::Save() 就應回傳 false
-        virtual void cxxlFASTCALL operator()(char8_t *p, size_t count, const std::u8string &name) = 0;
-        virtual void cxxlFASTCALL operator()(std::int8_t *p, size_t count, const std::u8string &name) = 0;
-        virtual void cxxlFASTCALL operator()(std::int16_t *p, size_t count, const std::u8string &name) = 0;
-        virtual void cxxlFASTCALL operator()(std::int32_t *p, size_t count, const std::u8string &name) = 0;
-        virtual void cxxlFASTCALL operator()(std::int64_t *p, size_t count, const std::u8string &name) = 0;
-        virtual void cxxlFASTCALL operator()(std::uint8_t *p, size_t count, const std::u8string &name) = 0;
-        virtual void cxxlFASTCALL operator()(std::uint16_t *p, size_t count, const std::u8string &name) = 0;
-        virtual void cxxlFASTCALL operator()(std::uint32_t *p, size_t count, const std::u8string &name) = 0;
-        virtual void cxxlFASTCALL operator()(std::uint64_t *p, size_t count, const std::u8string &name) = 0;
-        virtual void cxxlFASTCALL operator()(std::float32_t *p, size_t count, const std::u8string &name) = 0;
-        virtual void cxxlFASTCALL operator()(std::float64_t *p, size_t count, const std::u8string &name) = 0;
-        virtual void cxxlFASTCALL operator()(std::float128_t *p, size_t count, const std::u8string &name) = 0;
+        virtual void cxxlFASTCALL operator()(const char8_t *p, size_t count, const std::u8string &name) = 0;
+/*
+        virtual void cxxlFASTCALL operator()(const std::int8_t *p, size_t count, const std::u8string &name) = 0;
+        virtual void cxxlFASTCALL operator()(const std::int16_t *p, size_t count, const std::u8string &name) = 0;
+        virtual void cxxlFASTCALL operator()(const std::int32_t *p, size_t count, const std::u8string &name) = 0;
+        virtual void cxxlFASTCALL operator()(const std::int64_t *p, size_t count, const std::u8string &name) = 0;
+        virtual void cxxlFASTCALL operator()(const std::uint8_t *p, size_t count, const std::u8string &name) = 0;
+        virtual void cxxlFASTCALL operator()(const std::uint16_t *p, size_t count, const std::u8string &name) = 0;
+        virtual void cxxlFASTCALL operator()(const std::uint32_t *p, size_t count, const std::u8string &name) = 0;
+        virtual void cxxlFASTCALL operator()(const std::uint64_t *p, size_t count, const std::u8string &name) = 0;
+        virtual void cxxlFASTCALL operator()(const std::float32_t *p, size_t count, const std::u8string &name) = 0;
+        virtual void cxxlFASTCALL operator()(const std::float64_t *p, size_t count, const std::u8string &name) = 0;
+        virtual void cxxlFASTCALL operator()(const std::float128_t *p, size_t count, const std::u8string &name) = 0;
+*/        
     };
 
     // ISerializeLoad() 的回傳值
@@ -67,19 +69,20 @@ namespace CXXL
         // name: 要讀取的永續資料名稱，只有在檢查階段才有意義
         //
         // 若無資料 p 會指向 nullptr，count 會為 0
-        virtual SerializeLoadResult cxxlFASTCALL operator()(char8_t **p, size_t &count, const std::u8string &name) = 0;
-        virtual SerializeLoadResult cxxlFASTCALL operator()(std::int8_t **p, size_t &count, const std::u8string &name) = 0;
-        virtual SerializeLoadResult cxxlFASTCALL operator()(std::int16_t **p, size_t &count, const std::u8string &name) = 0;
-        virtual SerializeLoadResult cxxlFASTCALL operator()(std::int32_t **p, size_t &count, const std::u8string &name) = 0;
-        virtual SerializeLoadResult cxxlFASTCALL operator()(std::int64_t **p, size_t &count, const std::u8string &name) = 0;
-        virtual SerializeLoadResult cxxlFASTCALL operator()(std::uint8_t **p, size_t &count, const std::u8string &name) = 0;
-        virtual SerializeLoadResult cxxlFASTCALL operator()(std::uint16_t **p, size_t &count, const std::u8string &name) = 0;
-        virtual SerializeLoadResult cxxlFASTCALL operator()(std::uint32_t **p, size_t &count, const std::u8string &name) = 0;
-        virtual SerializeLoadResult cxxlFASTCALL operator()(std::uint64_t **p, size_t &count, const std::u8string &name) = 0;
-        virtual SerializeLoadResult cxxlFASTCALL operator()(std::float32_t **p, size_t &count, const std::u8string &name) = 0;
-        virtual SerializeLoadResult cxxlFASTCALL operator()(std::float64_t **p, size_t &count, const std::u8string &name) = 0;
-        virtual SerializeLoadResult cxxlFASTCALL operator()(std::float128_t **p, size_t &count, const std::u8string &name) = 0;
-        
+        virtual SerializeLoadResult cxxlFASTCALL operator()(const char8_t **p, size_t &count, const std::u8string &name) = 0;
+/*        
+        virtual SerializeLoadResult cxxlFASTCALL operator()(const std::int8_t **p, size_t &count, const std::u8string &name) = 0;
+        virtual SerializeLoadResult cxxlFASTCALL operator()(const std::int16_t **p, size_t &count, const std::u8string &name) = 0;
+        virtual SerializeLoadResult cxxlFASTCALL operator()(const std::int32_t **p, size_t &count, const std::u8string &name) = 0;
+        virtual SerializeLoadResult cxxlFASTCALL operator()(const std::int64_t **p, size_t &count, const std::u8string &name) = 0;
+        virtual SerializeLoadResult cxxlFASTCALL operator()(const std::uint8_t **p, size_t &count, const std::u8string &name) = 0;
+        virtual SerializeLoadResult cxxlFASTCALL operator()(const std::uint16_t **p, size_t &count, const std::u8string &name) = 0;
+        virtual SerializeLoadResult cxxlFASTCALL operator()(const std::uint32_t **p, size_t &count, const std::u8string &name) = 0;
+        virtual SerializeLoadResult cxxlFASTCALL operator()(const std::uint64_t **p, size_t &count, const std::u8string &name) = 0;
+        virtual SerializeLoadResult cxxlFASTCALL operator()(const std::float32_t **p, size_t &count, const std::u8string &name) = 0;
+        virtual SerializeLoadResult cxxlFASTCALL operator()(const std::float64_t **p, size_t &count, const std::u8string &name) = 0;
+        virtual SerializeLoadResult cxxlFASTCALL operator()(const std::float128_t **p, size_t &count, const std::u8string &name) = 0;
+*/        
     };
 
     // IPersistStorage 和 _Persistable 的溝通介面
