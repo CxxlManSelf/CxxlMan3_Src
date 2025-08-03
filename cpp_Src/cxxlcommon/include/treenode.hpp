@@ -1,5 +1,5 @@
 /***********************************************************
- * treenode.hpp 2.2.6
+ * treenode.hpp 2.2.7
  *
  * 一個階層式的樹狀容器，每個節點可以包含一個可有可無物件，和它
  * 之下不限數量(也可以是 0)的子容器
@@ -137,7 +137,7 @@ public:
             
         auto it = m_nameIndex.find(name);
         if (it != m_nameIndex.end())
-            return std::shared_ptr<const D>(*(it->second));
+            return std::const_pointer_cast<const D>(*(it->second));
 
         return nullptr;
     }
@@ -167,6 +167,13 @@ public:
     bool hasChild(const std::shared_ptr<D> &child) const
     {
         return m_childIndex.find(child) != m_childIndex.end();
+    }
+
+    // 檢查指定子節點是否存在 - O(1) 時間複雜度
+    bool hasChild(const std::shared_ptr<const D> &child) const
+    {
+        std::shared_ptr<D> tmp_ptr = std::const_pointer_cast<D>(child);
+        return m_childIndex.find(tmp_ptr) != m_childIndex.end();
     }
     
     size_t childCount() const
@@ -340,6 +347,14 @@ public:
         for (auto it = m_children.begin(); it != indexIt->second; ++it, ++pos);
         return pos;
     }
+
+    // 取得子節點在列表中的位置（0-based index）- O(n) 時間複雜度
+    std::optional<size_t> getChildPosition(const std::shared_ptr<const D> &child) const
+    {
+        std::shared_ptr<D> tmp_ptr = std::const_pointer_cast<D>(child);
+        return getChildPosition(tmp_ptr);
+    }
+
     
     // 按位置取得子節點 - O(n) 時間複雜度
     std::shared_ptr<const D> getChildAt(size_t position) const
@@ -349,7 +364,7 @@ public:
             
         auto it = m_children.begin();
         std::advance(it, position);
-        return std::shared_ptr<const D>(*it);
+        return std::const_pointer_cast<const D>(*it);
     }
 
     // 按位置取得子節點 - O(n) 時間複雜度
