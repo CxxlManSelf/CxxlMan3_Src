@@ -1,5 +1,5 @@
 /***********************************************************
- * treenode.hpp 2.2.7
+ * treenode.hpp 2.3.8
  *
  * 一個階層式的樹狀容器，每個節點可以包含一個可有可無物件，和它
  * 之下不限數量(也可以是 0)的子容器
@@ -32,13 +32,13 @@ private:
     const std::u8string m_name;
     std::list<std::shared_ptr<D>> m_children;  // 主要的子節點列表
     
-    // 名稱索引：名稱 -> list iterator
-    std::unordered_map<std::u8string, typename std::list<std::shared_ptr<D>>::iterator> m_nameIndex;
-    
+    // 名稱索引：名稱 -> shared_ptr
+    std::unordered_map<std::u8string, std::shared_ptr<D>> m_nameIndex;    
+
     // 子節點索引：shared_ptr -> list iterator  
     std::unordered_map<std::shared_ptr<D>, typename std::list<std::shared_ptr<D>>::iterator> m_childIndex;
     
-    void traverse(const std::function<void(const D&, size_t)> &callback, size_t depth) const
+    void cxxlFASTCALL traverse(const std::function<void(const D&, size_t)> &callback, size_t depth) const
     {
         callback(static_cast<const D&>(*this), depth);
 
@@ -48,7 +48,7 @@ private:
         callback(static_cast<const D&>(*this), 0);
     }
     
-    void traverse(const std::function<void(D&, size_t)> &callback, size_t depth) 
+    void cxxlFASTCALL traverse(const std::function<void(D&, size_t)> &callback, size_t depth) 
     {
         callback(static_cast<D&>(*this), depth);
 
@@ -61,10 +61,10 @@ private:
 public:
     explicit TreeNodeBase(const std::u8string &name) : m_name(name) {}
     
-    const std::u8string &getName() const { return m_name; }
+    const std::u8string& cxxlFASTCALL getName() const { return m_name; }
     
     // 新增子節點 - O(1) 時間複雜度
-    std::shared_ptr<D> addChild(const std::u8string &name)
+    std::shared_ptr<D> cxxlFASTCALL addChild(const std::u8string &name)
     {
         // 若有節點名稱則不可重複
         if(!name.empty() && hasChild(name))
@@ -78,13 +78,13 @@ public:
         
         // 如果有名稱，更新名稱索引
         if (!name.empty()) 
-            m_nameIndex[name] = it;
+            m_nameIndex[name] = newChild;
         
         return newChild;
     }
     
     // 在特定子節點之前插入新節點 - O(1) 時間複雜度
-    std::shared_ptr<D> insertBefore(const std::shared_ptr<D> &childNode, const std::u8string &name)
+    std::shared_ptr<D> cxxlFASTCALL insertBefore(const std::shared_ptr<D> &childNode, const std::u8string &name)
     {
         // 透過子節點索引快速找到位置
         auto indexIt = m_childIndex.find(childNode);
@@ -101,13 +101,13 @@ public:
         // 更新索引
         m_childIndex[newChild] = newIt;
         if (!name.empty())
-            m_nameIndex[name] = newIt;
+            m_nameIndex[name] = newChild;
         
         return newChild;
     }
     
     // 在特定子節點之後插入新節點 - O(1) 時間複雜度
-    std::shared_ptr<D> insertAfter(const std::shared_ptr<D> &childNode, const std::u8string &name)
+    std::shared_ptr<D> cxxlFASTCALL insertAfter(const std::shared_ptr<D> &childNode, const std::u8string &name)
     {
         // 透過子節點索引快速找到位置
         auto indexIt = m_childIndex.find(childNode);
@@ -124,39 +124,39 @@ public:
         // 更新索引
         m_childIndex[newChild] = newIt;
         if (!name.empty())
-            m_nameIndex[name] = newIt;
+            m_nameIndex[name] = newChild;
         
         return newChild;
     }
     
     // 按名稱查找子節點 - O(1) 時間複雜度
-    std::shared_ptr<const D> findChildByName(const std::u8string &name) const
+    std::shared_ptr<const D> cxxlFASTCALL findChildByName(const std::u8string &name) const
     {
         if(name.empty())
             return nullptr;
             
         auto it = m_nameIndex.find(name);
         if (it != m_nameIndex.end())
-            return std::const_pointer_cast<const D>(*(it->second));
+            return std::const_pointer_cast<const D>(it->second);
 
         return nullptr;
     }
 
     // 按名稱查找子節點 - O(1) 時間複雜度
-    std::shared_ptr<D> findChildByName(const std::u8string &name)
+    std::shared_ptr<D> cxxlFASTCALL findChildByName(const std::u8string &name)
     {
         if(name.empty())
             return nullptr;
             
         auto it = m_nameIndex.find(name);
         if (it != m_nameIndex.end()) 
-            return *(it->second);
+            return (it->second);
 
         return nullptr;
     }
     
     // 檢查指定名稱的子節點是否存在 - O(1) 時間複雜度
-    bool hasChild(const std::u8string &name) const
+    bool cxxlFASTCALL hasChild(const std::u8string &name) const
     {
         if(name.empty())
             return false;
@@ -164,25 +164,25 @@ public:
     }
     
     // 檢查指定子節點是否存在 - O(1) 時間複雜度
-    bool hasChild(const std::shared_ptr<D> &child) const
+    bool cxxlFASTCALL hasChild(const std::shared_ptr<D> &child) const
     {
         return m_childIndex.find(child) != m_childIndex.end();
     }
 
     // 檢查指定子節點是否存在 - O(1) 時間複雜度
-    bool hasChild(const std::shared_ptr<const D> &child) const
+    bool cxxlFASTCALL hasChild(const std::shared_ptr<const D> &child) const
     {
         std::shared_ptr<D> tmp_ptr = std::const_pointer_cast<D>(child);
         return m_childIndex.find(tmp_ptr) != m_childIndex.end();
     }
     
-    size_t childCount() const
+    size_t cxxlFASTCALL childCount() const
     {
         return m_children.size();
     }
     
     // 移除子節點 - O(1) 時間複雜度
-    bool removeChild(const std::shared_ptr<D> &child)
+    bool cxxlFASTCALL removeChild(const std::shared_ptr<D> &child)
     {
         auto indexIt = m_childIndex.find(child);
         if (indexIt != m_childIndex.end())
@@ -205,7 +205,7 @@ public:
     }
     
     // 按名稱移除子節點 - O(1) 時間複雜度
-    bool removeChildByName(const std::u8string &name)
+    bool cxxlFASTCALL removeChildByName(const std::u8string &name)
     {
         if (name.empty())
             return false;
@@ -213,21 +213,15 @@ public:
         auto nameIt = m_nameIndex.find(name);
         if (nameIt != m_nameIndex.end()) 
         {
-            auto listIt = nameIt->second;
-            auto child = *listIt;
-            
-            // 從所有索引和列表中移除
-            m_children.erase(listIt);
-            m_childIndex.erase(child);
-            m_nameIndex.erase(nameIt);
-            return true;
+            std::shared_ptr<D> child_ptr = nameIt->second;            
+            return removeChild(child_ptr);
         }
 
         return false;
     }
     
     // 移動子節點到指定位置之前 - O(1) 時間複雜度
-    bool moveChildBefore(const std::shared_ptr<D> &childToMove, const std::shared_ptr<D> &targetChild)
+    bool cxxlFASTCALL moveChildBefore(const std::shared_ptr<D> &childToMove, const std::shared_ptr<D> &targetChild)
     {
         auto moveIt = m_childIndex.find(childToMove);
         auto targetIt = m_childIndex.find(targetChild);
@@ -248,17 +242,12 @@ public:
         
         // 更新索引
         m_childIndex[childToMove] = newIt;
-        
-        // 如果有名稱，更新名稱索引
-        const auto &childName = child->getName();
-        if (!childName.empty()) 
-            m_nameIndex[childName] = newIt;        
-        
+       
         return true;
     }
     
     // 移動子節點到指定位置之後 - O(1) 時間複雜度
-    bool moveChildAfter(const std::shared_ptr<D> &childToMove, const std::shared_ptr<D> &targetChild)
+    bool cxxlFASTCALL moveChildAfter(const std::shared_ptr<D> &childToMove, const std::shared_ptr<D> &targetChild)
     {
         auto moveIt = m_childIndex.find(childToMove);
         auto targetIt = m_childIndex.find(targetChild);
@@ -280,16 +269,11 @@ public:
         // 更新索引
         m_childIndex[childToMove] = newIt;
         
-        // 如果有名稱，更新名稱索引
-        const auto &childName = child->getName();
-        if (!childName.empty())
-            m_nameIndex[childName] = newIt;
-        
         return true;
     }
     
     // 移動子節點到開頭 - O(1) 時間複雜度
-    bool moveChildToFront(const std::shared_ptr<D> &child)
+    bool cxxlFASTCALL moveChildToFront(const std::shared_ptr<D> &child)
     {
         auto indexIt = m_childIndex.find(child);
         if (indexIt == m_childIndex.end())
@@ -305,15 +289,12 @@ public:
         
         // 更新索引
         m_childIndex[child] = newIt;
-        const auto &childName = childPtr->getName();
-        if (!childName.empty())
-            m_nameIndex[childName] = newIt;
         
         return true;
     }
     
     // 移動子節點到結尾 - O(1) 時間複雜度
-    bool moveChildToBack(const std::shared_ptr<D> &child)
+    bool cxxlFASTCALL moveChildToBack(const std::shared_ptr<D> &child)
     {
         auto indexIt = m_childIndex.find(child);
         if (indexIt == m_childIndex.end())
@@ -329,15 +310,12 @@ public:
         
         // 更新索引
         m_childIndex[child] = newIt;
-        const auto &childName = childPtr->getName();
-        if (!childName.empty())
-            m_nameIndex[childName] = newIt;
         
         return true;
     }
     
     // 取得子節點在列表中的位置（0-based index）- O(n) 時間複雜度
-    std::optional<size_t> getChildPosition(const std::shared_ptr<D> &child) const
+    std::optional<size_t> cxxlFASTCALL getChildPosition(const std::shared_ptr<D> &child) const
     {
         auto indexIt = m_childIndex.find(child);
         if (indexIt == m_childIndex.end())
@@ -349,7 +327,7 @@ public:
     }
 
     // 取得子節點在列表中的位置（0-based index）- O(n) 時間複雜度
-    std::optional<size_t> getChildPosition(const std::shared_ptr<const D> &child) const
+    std::optional<size_t> cxxlFASTCALL getChildPosition(const std::shared_ptr<const D> &child) const
     {
         std::shared_ptr<D> tmp_ptr = std::const_pointer_cast<D>(child);
         return getChildPosition(tmp_ptr);
@@ -357,7 +335,7 @@ public:
 
     
     // 按位置取得子節點 - O(n) 時間複雜度
-    std::shared_ptr<const D> getChildAt(size_t position) const
+    std::shared_ptr<const D> cxxlFASTCALL getChildAt(size_t position) const
     {
         if (position >= m_children.size())
             return nullptr;
@@ -368,7 +346,7 @@ public:
     }
 
     // 按位置取得子節點 - O(n) 時間複雜度
-    std::shared_ptr<D> getChildAt(size_t position)
+    std::shared_ptr<D> cxxlFASTCALL getChildAt(size_t position)
     {
         if (position >= m_children.size())
             return nullptr;
@@ -377,17 +355,103 @@ public:
         std::advance(it, position);
         return *it;
     }
+
+    // 取得第一個子節點 - O(1) 時間複雜度
+    std::shared_ptr<const D> cxxlFASTCALL getFirstChild() const
+    {
+        if (m_children.empty())
+            return nullptr;
+            
+        return std::const_pointer_cast<const D>(*m_children.begin());
+    }
     
-    // 取得 iterator，用於高效遍歷
-    typename std::list<std::shared_ptr<D>>::iterator begin() { return m_children.begin(); }
-    typename std::list<std::shared_ptr<D>>::iterator end() { return m_children.end(); }
-    typename std::list<std::shared_ptr<D>>::const_iterator begin() const { return m_children.begin(); }
-    typename std::list<std::shared_ptr<D>>::const_iterator end() const { return m_children.end(); }
-    typename std::list<std::shared_ptr<D>>::const_iterator cbegin() const { return m_children.cbegin(); }
-    typename std::list<std::shared_ptr<D>>::const_iterator cend() const { return m_children.cend(); }
+    // 取得第一個子節點 - O(1) 時間複雜度
+    std::shared_ptr<D> cxxlFASTCALL getFirstChild()
+    {
+        if (m_children.empty())
+            return nullptr;
+            
+        return *m_children.begin();
+    }
+
+    // 取得最後一個子節點 - O(1) 時間複雜度
+    std::shared_ptr<const D> cxxlFASTCALL getLastChild() const
+    {
+        if (m_children.empty())
+            return nullptr;
+            
+        return std::const_pointer_cast<const D>(*m_children.rbegin());
+    }
+
+    // 取得最後一個子節點 - O(1) 時間複雜度
+    std::shared_ptr<D> cxxlFASTCALL getLastChild()
+    {
+        if (m_children.empty())
+            return nullptr;
+            
+        return *m_children.rbegin();
+    }
+
+    // 取得指定子節點的下一個子節點 - O(n) 時間複雜度
+    std::shared_ptr<const D> cxxlFASTCALL getNextChild(const std::shared_ptr<const D> &child) const
+    {
+        std::shared_ptr<D> tmp_ptr = std::const_pointer_cast<D>(child);
+        auto it = m_childIndex.find(tmp_ptr);
+        if (it == m_childIndex.end())
+            return nullptr;
+            
+        auto nextIt = std::next(it->second);
+        if (nextIt == m_children.end())
+            return nullptr;
+            
+        return std::const_pointer_cast<const D>(*nextIt);
+    }
+
+    // 取得指定子節點的下一個子節點 - O(n) 時間複雜度
+    std::shared_ptr<D> cxxlFASTCALL getNextChild(const std::shared_ptr<D> &child)
+    {
+        auto it = m_childIndex.find(child);
+        if (it == m_childIndex.end())
+            return nullptr;
+            
+        auto nextIt = std::next(it->second);
+        if (nextIt == m_children.end())
+            return nullptr;
+            
+        return *nextIt;        
+    }
+
+    // 取得指定子節點的上一個子節點 - O(n) 時間複雜度
+    std::shared_ptr<const D> cxxlFASTCALL getPreviousChild(const std::shared_ptr<const D> &child) const
+    {
+        std::shared_ptr<D> tmp_ptr = std::const_pointer_cast<D>(child);
+        auto it = m_childIndex.find(tmp_ptr);
+        if (it == m_childIndex.end())
+            return nullptr;
+            
+        auto prevIt = std::prev(it->second);
+        if (prevIt == m_children.rend())
+            return nullptr;
+            
+        return std::const_pointer_cast<const D>(*prevIt);
+    }
+
+    // 取得指定子節點的上一個子節點 - O(n) 時間複雜度
+    std::shared_ptr<D> cxxlFASTCALL getPreviousChild(const std::shared_ptr<D> &child)
+    {
+        auto it = m_childIndex.find(child);
+        if (it == m_childIndex.end())
+            return nullptr;
+            
+        auto prevIt = std::prev(it->second);
+        if (prevIt == m_children.rend())
+            return nullptr;
+            
+        return *prevIt;        
+    }
     
-    // 遍歷整棵樹(深度優先)        
-    void traverse(const std::function<void(const D&, size_t)> &callback) const
+    // 遍歷整棵樹(深度優先)
+    void cxxlFASTCALL traverse(const std::function<void(const D&, size_t)> &callback) const
     {
         callback(static_cast<const D&>(*this), 1);
 
@@ -397,7 +461,8 @@ public:
         callback(static_cast<const D&>(*this), 0);
     }
     
-    void traverse(const std::function<void(D&, size_t)> &callback) 
+    // 遍歷整棵樹(深度優先)
+    void cxxlFASTCALL traverse(const std::function<void(D&, size_t)> &callback) 
     {
         callback(static_cast<D&>(*this), 1);
 
@@ -408,20 +473,20 @@ public:
     }
     
     // 遍歷子節點(不含孫節點)
-    void forEachChild(const std::function<void(const D&)> &callback) const
+    void cxxlFASTCALL forEachChild(const std::function<void(const std::shared_ptr<const D>&) &callback) const
     {
         for (const auto &childNode : m_children)
-            callback(*childNode);
+            callback(std::const_pointer_cast<const D>(childNode));
     }
     
-    void forEachChild(const std::function<void(D&)> &callback)
+    void cxxlFASTCALL forEachChild(const std::function<void(const std::shared_ptr<D>&)> &callback)
     {
         for (auto &childNode : m_children)
-            callback(*childNode);
+            callback(childNode);
     }
     
     // 清空所有子節點 - O(n) 時間複雜度
-    void clearChildren()
+    void cxxlFASTCALL clearChildren()
     {
         m_children.clear();
         m_nameIndex.clear();
@@ -429,7 +494,7 @@ public:
     }
     
     // 偵錯用：檢查索引一致性
-    bool validateIndexes() const
+    bool cxxlFASTCALL validateIndexes() const
     {
         // 檢查子節點索引
         if (m_childIndex.size() != m_children.size())
@@ -445,7 +510,7 @@ public:
         // 檢查名稱索引
         for (const auto &pair : m_nameIndex)
         {
-            if ((*(pair.second))->getName() != pair.first)
+            if (((pair.second))->getName() != pair.first)
                 return false;
         }
         
@@ -474,14 +539,14 @@ public:
     }
 
     // 取得此節點資料
-    T &getData() { return m_data; }
+    T& cxxlFASTCALL getData() { return m_data; }
     const T &getData() const 
     { 
         return m_data; 
     }
 
     // 設定此節點資料
-    void setData(T &&data) 
+    void cxxlFASTCALL setData(T &&data) 
     { 
         m_data = std::move(data); 
     }
