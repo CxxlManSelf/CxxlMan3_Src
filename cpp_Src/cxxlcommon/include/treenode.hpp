@@ -1,5 +1,5 @@
 /***********************************************************
- * treenode.hpp 2.3.8
+ * treenode.hpp 2.3.9
  *
  * 一個階層式的樹狀容器，每個節點可以包含一個可有可無物件，和它
  * 之下不限數量(也可以是 0)的子容器
@@ -18,6 +18,7 @@
 #include <string>
 #include <functional>
 
+#include <sysdef.hpp>
 #include <commondef.hpp>
 
 namespace CXXL
@@ -64,7 +65,7 @@ public:
     const std::u8string& cxxlFASTCALL getName() const { return m_name; }
     
     // 新增子節點 - O(1) 時間複雜度
-    std::shared_ptr<D> cxxlFASTCALL addChild(const std::u8string &name)
+    std::shared_ptr<D> cxxlFASTCALL addChild(const std::u8string &name=u8"")
     {
         // 若有節點名稱則不可重複
         if(!name.empty() && hasChild(name))
@@ -145,8 +146,8 @@ public:
     // 按名稱查找子節點 - O(1) 時間複雜度
     std::shared_ptr<D> cxxlFASTCALL findChildByName(const std::u8string &name)
     {
-        if(name.empty())
-            return nullptr;
+      //  if(name.empty())
+      //      return nullptr;
             
         auto it = m_nameIndex.find(name);
         if (it != m_nameIndex.end()) 
@@ -158,8 +159,8 @@ public:
     // 檢查指定名稱的子節點是否存在 - O(1) 時間複雜度
     bool cxxlFASTCALL hasChild(const std::u8string &name) const
     {
-        if(name.empty())
-            return false;
+        //if(name.empty())
+        //    return false;
         return m_nameIndex.find(name) != m_nameIndex.end();
     }
     
@@ -207,8 +208,8 @@ public:
     // 按名稱移除子節點 - O(1) 時間複雜度
     bool cxxlFASTCALL removeChildByName(const std::u8string &name)
     {
-        if (name.empty())
-            return false;
+        //if (name.empty())
+        //    return false;
             
         auto nameIt = m_nameIndex.find(name);
         if (nameIt != m_nameIndex.end()) 
@@ -473,7 +474,7 @@ public:
     }
     
     // 遍歷子節點(不含孫節點)
-    void cxxlFASTCALL forEachChild(const std::function<void(const std::shared_ptr<const D>&) &callback) const
+    void cxxlFASTCALL forEachChild(const std::function<void(const std::shared_ptr<const D>&)> &callback) const
     {
         for (const auto &childNode : m_children)
             callback(std::const_pointer_cast<const D>(childNode));
@@ -533,23 +534,43 @@ public:
     }
 
     // 建構函式
+    // 用 std::copy
+    explicit TreeNode(const T &data, const std::u8string &name)
+        : TreeNodeBase<TreeNode<T> >(name), m_data(data)
+    {
+    }
+
+    // 建構函式
+    // 用 std::move
     explicit TreeNode(T &&data, const std::u8string &name)
         : TreeNodeBase<TreeNode<T> >(name), m_data(std::move(data))
     {
     }
 
     // 取得此節點資料
-    T& cxxlFASTCALL getData() { return m_data; }
+    T& cxxlFASTCALL getData()
+    { 
+        return m_data; 
+    }
     const T &getData() const 
     { 
         return m_data; 
     }
 
     // 設定此節點資料
+    // 用 std::copy
+    void cxxlFASTCALL setData(T &data) 
+    { 
+        m_data = data; 
+    }
+
+    // 設定此節點資料
+    // 用 std::move
     void cxxlFASTCALL setData(T &&data) 
     { 
         m_data = std::move(data); 
     }
+
 };
 
 
