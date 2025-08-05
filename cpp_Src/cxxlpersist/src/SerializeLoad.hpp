@@ -170,7 +170,7 @@ struct Visitor : public ISerializeLoadVisitor
 template <typename PD>
 class SerializeLoad : public ISerializeLoad
 {
-    std::shared_ptr<TreeNode<PD> > m_ATTRs_ptr; // 存放永續資料容器的 "_ATTRs" 子節點
+    std::shared_ptr<const TreeNode<PD> > m_ATTRs_ptr; // 存放永續資料容器的 "_ATTRs" 子節點
 
     // 存放物件本身所有原始永續資料，在檢查階段從 m_ATTRs_ptr 取得
     std::vector<std::shared_ptr<PersistData_SrcBase> > m_PD_srcs;
@@ -192,7 +192,7 @@ class SerializeLoad : public ISerializeLoad
         std::u8string index_str(reinterpret_cast<const char8_t*>(temp_str.c_str()), 
                         temp_str.length());
 
-        std::shared_ptr<TreeNode<PD> > PD_ptr = m_ATTRs_ptr->findChildByName(index_str + u8'.' + name);
+        std::shared_ptr<const TreeNode<PD> > PD_ptr = m_ATTRs_ptr->findChildByName(index_str + u8'.' + name);
         if(!PD_ptr) return SerializeLoadResult::CHK_FAILED; // 沒有指定名稱的子節點
 
         // 取得子節點的永續資料
@@ -240,7 +240,7 @@ public:
     virtual ~SerializeLoad() 
     {}
 
-    void cxxlFASTCALL setPD(std::shared_ptr<TreeNode<PD> > &ATTRs_ptr)
+    void cxxlFASTCALL setPD(std::shared_ptr<const TreeNode<PD> > &ATTRs_ptr)
     {
         m_ATTRs_ptr = ATTRs_ptr;
     }

@@ -104,10 +104,11 @@ public:
     void cxxlFASTCALL save()
     {
         // 先保存子節點
-        const std::list<std::shared_ptr<PCnPD_Save<T> > > &children_list = this->getChildren();
-        for(auto child_it = children_list.begin(); child_it != children_list.end(); ++child_it)
+        std::shared_ptr<PCnPD_Save> child_PCnPD_ptr = this->getFirstChild();        
+        while(child_PCnPD_ptr != nullptr)
         {
-            (*child_it)->save();
+            child_PCnPD_ptr->save();
+            child_PCnPD_ptr = this->getNextChild(child_PCnPD_ptr);
         }
 
         // 再保存自己
@@ -177,40 +178,36 @@ public:
             if(CLs_ptr->childCount() != childLink_list.size())
                 return PersistLoadResult::DATA_NOT_MATCH;            
             
-            const std::list<std::shared_ptr<TreeNode<T> > >& CLs_list = CLs_ptr->getChildren();
-            // CLs_list 的 iterator
-            auto CLs_it = CLs_list.begin();
+            // 取得儲存容器中一個存放 IChildLinkChannel 的子節點，其內存放其 IPersistChannel 陣列
+            std::shared_ptr<const TreeNode<T> > CPs_ptr = CLs_ptr->getFirstChild();
 
             // 取出 m_pPC 的子物件和對應的永續資料儲存子容器
-            for(auto link_it = childLink_list.begin(); link_it != childLink_list.end(); ++link_it)
+            for(auto link_it = childLink_list.begin(); link_it != childLink_list.end(); ++link_it)            
             {
-                // 取得儲存容器中一個存放 IChildLinkChannel 的子節點，其內存放其 IPersistChannel 陣列
-                std::shared_ptr<TreeNode<T> > CPs_ptr = *(CLs_it++);
-
                 // 取得一個 IChildLinkChannel 包裹的 IPersistChannel 列表
                 std::list<IPersistChannel *> &PC_list = (*link_it)->getChildPersistables();
-                const std::list<std::shared_ptr<TreeNode<T> > > &CP_list = CPs_ptr->getChildren();
+                // const std::list<std::shared_ptr<TreeNode<T> > > &CP_list = CPs_ptr->getChildren();
 
-                // IPersistChannel 的數量不一致
-                if(CP_list.size() != PC_list.size())
+                // IPersistChannel 的數量不一致                
+                if(CPs_ptr->childCount() != PC_list.size())
                     return PersistLoadResult::DATA_NOT_MATCH;
-
-                // CP_list 的 iterator
-                auto CP_it = CP_list.begin();
+               
+                // 取得儲存容器中一個存放 IPersistChannel 的子節點
+                std::shared_ptr<const TreeNode<T> > child_PD_ptr = CPs_ptr->getFirstChild();
 
                 // 為每個 m_pPC 的子物件和對應的永續資料儲存子容器，建立
                 // 子 PCnPD_Load，並交給子 PCnPD_Load 處理初始化
                 for(auto PC_it = PC_list.begin(); PC_it != PC_list.end(); ++PC_it)
                 {
-                    // 取得儲存容器中一個存放 IPersistChannel 的子節點
-                    std::shared_ptr<TreeNode<T> > child_PD_ptr = *(CP_it++);
-
                     // 創建子節點對應的 PCnPD_Load
                     std::shared_ptr<PCnPD_Load> child_PCnPD_ptr = this->addChild(u8"");
                     PersistLoadResult result = child_PCnPD_ptr->init(*PC_it, child_PD_ptr);
                     if(result != PersistLoadResult::SUCCESS) 
-                        return result;                    
+                        return result;
+                    child_PD_ptr = CPs_ptr->getNextChild(child_PD_ptr);
                 }
+
+                CPs_ptr = CLs_ptr->getNextChild(CPs_ptr);
             }
         }
 
@@ -222,17 +219,19 @@ public:
     bool cxxlFASTCALL check()
     {
         // 先檢查子節點
-        const std::list<std::shared_ptr<PCnPD_Load<T> > > &children_list = this->getChildren();
-        for(auto child_it = children_list.begin(); child_it != children_list.end(); ++child_it)
+        std::shared_ptr<PCnPD_Load<T> > child_PCnPD_ptr = this->getFirstChild();
+        while(child_PCnPD_ptr != nullptr)
         {
-            if( (*child_it)->check() == false )
+            if( child_PCnPD_ptr->check() == false )
                 return false;
+
+            child_PCnPD_ptr = this->getNextChild(child_PCnPD_ptr);
         }
 
         // 再檢查自己
 
         // 從儲存容器中名為 "_ATTRs" 的子節點，取得 m_pPC 保存的屬性
-        std::shared_ptr<TreeNode<T> > ATTRs_ptr = m_PD_ptr->findChildByName(u8"_ATTRs");
+        std::shared_ptr<const TreeNode<T> > ATTRs_ptr = m_PD_ptr->findChildByName(u8"_ATTRs");
         if(ATTRs_ptr == nullptr) 
             return false;
 
@@ -245,10 +244,11 @@ public:
     void cxxlFASTCALL load()
     {
         // 先讀取子節點
-        const std::list<std::shared_ptr<PCnPD_Load<T> > > &children_list = this->getChildren();
-        for(auto child_it = children_list.begin(); child_it != children_list.end(); ++child_it)
+        std::shared_ptr<PCnPD_Load<T> > child_PCnPD_ptr = this->getFirstChild();
+        while (child_PCnPD_ptr != nullptr)        
         {
-            (*child_it)->load();
+            child_PCnPD_ptr->load();
+            child_PCnPD_ptr = this->getNextChild(child_PCnPD_ptr);
         }
 
         // 再讀取自己

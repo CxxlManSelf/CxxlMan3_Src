@@ -38,7 +38,7 @@ PersistLoadResult cxxlFASTCALL simpPersist_load(IPersistChannel *pPersistable,
     const std::u8string &name)
 {
     // 取得儲存永續資料的子節點
-    std::shared_ptr<TreeNode<PersistData_String> > PDroot_ptr = PD_ptr->findChildByName(name);
+    std::shared_ptr<const TreeNode<PersistData_String> > PDroot_ptr = PD_ptr->findChildByName(name);
     if(!PDroot_ptr)
         return PersistLoadResult::NAME_NOT_FOUND;
 

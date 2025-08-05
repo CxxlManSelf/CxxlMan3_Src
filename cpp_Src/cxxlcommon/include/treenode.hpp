@@ -507,8 +507,12 @@ public:
         
         // 檢查名稱索引
         for (const auto &pair : m_nameIndex)
-        {
-            if (((pair.second))->getName() != pair.first)
+        {            
+            std::shared_ptr<D> &child = pair.second;
+            if (m_childIndex.find(child.get()) == m_childIndex.end())
+                return false;
+            
+            if (child->getName() != pair.first)
                 return false;
         }
         
