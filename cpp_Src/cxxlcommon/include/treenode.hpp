@@ -1,10 +1,10 @@
 /***********************************************************
- * treenode.hpp 2.3.11
+ * treenode.hpp 2.3.12
  *
- * 一個階層式的樹狀容器，每個節點可以包含一個可有可無物件，和它
- * 之下不限數量(也可以是 0)的子容器
+ * 一個階層式的樹狀容器，每個節點可以包含一個可有可無的物件，和它
+ * 之下不限數量(也可以是 0)的子容器。
  *
- * 採用 CRTP 架構，可由 TreeNodeBase 延伸出自定義類別
+ * 採用 CRTP 架構，可由 TreeNodeBase 延伸出自定義類別。
  * 每個節點可以 重複 無名子節點，但若有名稱則只能有一個，即名稱不可重複
  * 
  * Author: CxxlMan
@@ -14,6 +14,7 @@
 #define __CXXLCOMMON_TREENODE_HPP_CxxlMan3
 
 #include <list>
+#include <unordered_map>
 #include <memory>
 #include <string>
 #include <functional>
@@ -60,8 +61,10 @@ private:
     }
     
 public:
+    // Constructor
     explicit TreeNodeBase(const std::u8string &name) : m_name(name) {}
     
+    // 取得節點名稱
     const std::u8string& cxxlFASTCALL getName() const { return m_name; }
     
     // 新增子節點 - O(1) 時間複雜度
@@ -176,6 +179,7 @@ public:
         return m_childIndex.find((D*)child.get()) != m_childIndex.end();
     }
     
+    // 取得子節點數量
     size_t cxxlFASTCALL childCount() const
     {
         return m_children.size();
@@ -359,8 +363,8 @@ public:
     // 取得第一個子節點 - O(1) 時間複雜度
     std::shared_ptr<const D> cxxlFASTCALL getFirstChild() const
     {
-        if (m_children.empty())
-            return nullptr;
+        // if (m_children.empty())
+        //    return nullptr;
             
         return std::const_pointer_cast<const D>(*m_children.begin());
     }
@@ -368,8 +372,8 @@ public:
     // 取得第一個子節點 - O(1) 時間複雜度
     std::shared_ptr<D> cxxlFASTCALL getFirstChild()
     {
-        if (m_children.empty())
-            return nullptr;
+        //if (m_children.empty())
+        //    return nullptr;
             
         return *m_children.begin();
     }
@@ -377,8 +381,8 @@ public:
     // 取得最後一個子節點 - O(1) 時間複雜度
     std::shared_ptr<const D> cxxlFASTCALL getLastChild() const
     {
-        if (m_children.empty())
-            return nullptr;
+        //if (m_children.empty())
+        //    return nullptr;
             
         return std::const_pointer_cast<const D>(*m_children.rbegin());
     }
@@ -386,8 +390,8 @@ public:
     // 取得最後一個子節點 - O(1) 時間複雜度
     std::shared_ptr<D> cxxlFASTCALL getLastChild()
     {
-        if (m_children.empty())
-            return nullptr;
+        //if (m_children.empty())
+        //    return nullptr;
             
         return *m_children.rbegin();
     }
