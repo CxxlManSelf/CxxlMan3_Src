@@ -4,7 +4,7 @@
 namespace CXXL
 {
     
-// 宣告在 simple_persist_storage.cpp 中
+// 宣告在 simple_persist_storage.hpp 中
 PersistSaveResult cxxlFASTCALL simpPersist_save(IPersistChannel *pPersistable, 
     const std::shared_ptr<TreeNode<PersistData_String> > &PD_ptr, 
     const std::u8string &name)
@@ -32,7 +32,7 @@ PersistSaveResult cxxlFASTCALL simpPersist_save(IPersistChannel *pPersistable,
     
 }
 
-// 宣告在 simple_persist_storage.cpp 中
+// 宣告在 simple_persist_storage.hpp 中
 PersistLoadResult cxxlFASTCALL simpPersist_load(IPersistChannel *pPersistable, 
     const std::shared_ptr<const TreeNode<PersistData_String> > &PD_ptr, 
     const std::u8string &name)

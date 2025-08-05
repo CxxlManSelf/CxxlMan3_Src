@@ -1,10 +1,9 @@
 /************************************************************************************************
  * PCnPD.hpp v0.1.0
  *
- * 這個類別在存放 IPersistChannel 和 TreeNode<T> 兩者對應的實作物件
- * 並提供兩者之間的操作
+ * 把 IPersistChannel 和 TreeNode<PD> 兩者對應的實作物件節點包裹
+ * 在一起，並提供兩者之間的操作
  *
- * T 
  *
  * Author: CxxlMan
  * Date: 2025 -
@@ -31,7 +30,7 @@ class PCnPD_Save:public TreeNodeBase<PCnPD_Save<T> >
 
 public:
     // Constructor
-    // name 是 TreeNode<> 的要求，不具有意義
+    // name 是 TreeNodeBase 的要求，不具有意義
     PCnPD_Save(const std::u8string &name) 
       :TreeNodeBase<PCnPD_Save<T> >(name)
     {}
@@ -46,7 +45,8 @@ public:
         }
     }
 
-    // 初始化
+    // 初始化，包裹 m_pPC 和 m_PD_ptr
+    //
     // 並為 m_pPC 的子物件，在 m_PD_ptr 中建立相應的儲存容器
     // 子節點，並交給子 PCnPD_Save 處理初始化
     // 無法鎖住回覆 false
@@ -134,7 +134,7 @@ class PCnPD_Load:public TreeNodeBase<PCnPD_Load<T> >
 
 public:
     // Constructor
-    // name 是 TreeNode<> 的要求，不具有意義
+    // name 是 TreeNodeBase 的要求，不具有意義
     PCnPD_Load(const std::u8string &name)
         : TreeNodeBase<PCnPD_Load<T> >(name)
     {}
@@ -149,7 +149,8 @@ public:
         }
     }
 
-    // 初始化
+    // 初始化，包裹 m_pPC 和 m_PD_ptr
+    //
     // 為 m_pPC 的子物件，找出在 m_PD_ptr 中對應的永續資料儲
     // 存子容器，並交給子 PCnPD_Load 處理初始化
     PersistLoadResult cxxlFASTCALL init(IPersistChannel *pPC, 
@@ -181,12 +182,11 @@ public:
             // 取得儲存容器中一個存放 IChildLinkChannel 的子節點，其內存放其 IPersistChannel 陣列
             std::shared_ptr<const TreeNode<T> > CPs_ptr = CLs_ptr->getFirstChild();
 
-            // 取出 m_pPC 的子物件和對應的永續資料儲存子容器
+            // 取出 m_pPC 的子物件
             for(auto link_it = childLink_list.begin(); link_it != childLink_list.end(); ++link_it)            
             {
                 // 取得一個 IChildLinkChannel 包裹的 IPersistChannel 列表
-                std::list<IPersistChannel *> &PC_list = (*link_it)->getChildPersistables();
-                // const std::list<std::shared_ptr<TreeNode<T> > > &CP_list = CPs_ptr->getChildren();
+                std::list<IPersistChannel *> &PC_list = (*link_it)->getChildPersistables();                
 
                 // IPersistChannel 的數量不一致                
                 if(CPs_ptr->childCount() != PC_list.size())
