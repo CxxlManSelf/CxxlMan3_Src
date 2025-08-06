@@ -1,5 +1,5 @@
 /***********************************************************
- * treenode.hpp 2.3.13
+ * treenode.hpp 2.3.14
  *
  * 一個階層式的樹狀容器，每個節點可以包含一個可有可無的物件，和它
  * 之下不限數量(也可以是 0)的子容器。
@@ -18,6 +18,7 @@
 #include <memory>
 #include <string>
 #include <functional>
+#include <optional>
 
 #include <sysdef.hpp>
 #include <commondef.hpp>
@@ -155,7 +156,7 @@ public:
         if(!name.empty() && hasChild(name))
             return nullptr;
             
-        auto newChild(new D(name));
+        NODE_PTR newChild(new D(name));
         auto newIt = m_children.insert(indexIt->second, newChild);
         
         // 更新索引
@@ -180,7 +181,7 @@ public:
         if(!name.empty() && hasChild(name))
             return nullptr;
             
-        auto newChild(new D(name));
+        NODE_PTR newChild(new D(name));
         auto newIt = m_children.insert(std::next(indexIt->second), newChild);
         
         // 更新索引
@@ -523,11 +524,12 @@ public:
         auto it = m_childIndex.find((D*)child.get());
         if (it == m_childIndex.end())
             return nullptr;
-            
-        auto prevIt = std::prev(it->second);
-        if (prevIt == m_children.rend())
+
+        auto childIt = it->second;
+        if(childIt == m_children.begin())
             return nullptr;
-            
+
+        auto prevIt = std::prev(childIt);
         return std::const_pointer_cast<const D>(*prevIt);
     }
 
@@ -537,12 +539,13 @@ public:
         auto it = m_childIndex.find(child.get());
         if (it == m_childIndex.end())
             return nullptr;
-            
-        auto prevIt = std::prev(it->second);
-        if (prevIt == m_children.rend())
+
+        auto childIt = it->second;
+        if(childIt == m_children.begin())
             return nullptr;
-            
-        return *prevIt;        
+
+        auto prevIt = std::prev(childIt);
+        return *prevIt;            
     }
     
 
@@ -600,7 +603,7 @@ public:
         // 檢查名稱索引
         for (const auto &pair : m_nameIndex)
         {            
-            NODE_PTR &child = pair.second;
+            const NODE_PTR &child = pair.second;
             if (m_childIndex.find(child.get()) == m_childIndex.end())
                 return false;
             
