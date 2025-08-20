@@ -74,24 +74,31 @@ void cxxlFASTCALL traverse(const std::function<void(const D &,
                                                     size_t)> &callback,
                             size_t depth) const
 {
-    callback(static_cast<const D &>(*this), depth);
+    callback(static_cast<const D&>(*this), depth);
 
-    for (const auto &childNode : m_children)
-        childNode->traverse(callback, depth + 1);
-
-    callback(static_cast<const D &>(*this), 0);
+    if(m_children.size() != 0)
+    {
+        for (auto &childNode : m_children)
+            ((const D*)childNode.get())->traverse(
+                callback, depth + 1);
+        
+        callback(static_cast<const D&>(*this), 0);
+    }
 }
 
 void cxxlFASTCALL traverse(const std::function<void(D &, size_t)>
                                 &callback,
                             size_t depth)
 {
-    callback(static_cast<D &>(*this), depth);
+    callback(static_cast<D&>(*this), depth);
 
-    for (auto &childNode : m_children)
-        childNode->traverse(callback, depth + 1);
-
-    callback(static_cast<D &>(*this), 0);
+    if(m_children.size() != 0)
+    {
+        for (auto &childNode : m_children)
+            childNode->traverse(callback, depth + 1);
+        
+        callback(static_cast<D&>(*this), 0);
+    }
 }
 
 protected:
@@ -639,12 +646,16 @@ void cxxlFASTCALL traverse(const std::function<
                             void(const D &node, size_t depth)>
                                 &callback) const
 {
-    callback(*static_cast<const D *>(this), 1);
+    callback(*static_cast<const D*>(this), 1);
 
-    for (const auto &childNode : m_children)
-        childNode->traverse(callback, 2);
-
-    callback(*static_cast<const D *>(this), 0);
+    if(m_children.size() != 0)
+    {
+        for (auto &childNode : m_children)
+            ((const D*)childNode.get())->traverse(
+                callback, 2);        
+    
+        callback(*static_cast<const D*>(this), 0);
+    }
 }
 
 // 遍歷整棵樹(深度優先)
@@ -655,12 +666,15 @@ void cxxlFASTCALL traverse(const std::function<
                             void(D &node, size_t depth)>
                                 &callback)
 {
-    callback(*static_cast<D *>(this), 1);
+    callback(*static_cast<D*>(this), 1);
 
-    for (auto &childNode : m_children)
-        childNode->traverse(callback, 2);
+    if(m_children.size() != 0)
+    {
+        for (auto &childNode : m_children)
+            childNode->traverse(callback, 2);
 
-    callback(*static_cast<D *>(this), 0);
+        callback(*static_cast<D*>(this), 0);
+    }
 }
 
 // 遍歷子節點(不含孫節點)
