@@ -1,5 +1,5 @@
 /***********************************************************
- * treenode.hpp 2.3.14
+ * treenode.hpp 2.3.15
  *
  * 一個階層式的樹狀容器，每個節點可以包含
  * 一個可有可無物件，和它之下不限數量(也
@@ -127,6 +127,13 @@ static NODE_PTR cxxlFASTCALL createRoot(const std::u8string &name)
 }
 
 public:
+
+// Destructor
+virtual ~TreeNodeBase() 
+{
+    clearChildren();
+}
+
 // 取得節名稱
 const std::u8string &cxxlFASTCALL getName() const
 {
@@ -315,14 +322,14 @@ bool cxxlFASTCALL removeChild(const NODE_PTR &child)
     if (indexIt != m_childIndex.end())
     {
         auto listIt = indexIt->second;
-
+        
         // 如果有名稱，從名稱索引中移除
-        const auto &childName = (*listIt)->getName();
-        if (!childName.empty())
-        {
-            m_nameIndex.erase(childName);
-        }
+        const auto &childName = child->getName();
+        if (!childName.empty()) 
+            m_nameIndex.erase(childName);            
 
+        child->m_parent.reset();
+        
         // 從列表和子節點索引中移除
         m_children.erase(listIt);
         m_childIndex.erase(indexIt);
@@ -335,9 +342,6 @@ bool cxxlFASTCALL removeChild(const NODE_PTR &child)
 // 按名稱移除子節點 - O(1)時間複雜度
 bool cxxlFASTCALL removeChildByName(const std::u8string &name)
 {
-    // if (name.empty())
-    //     return false;
-
     auto nameIt = m_nameIndex.find(name);
     if (nameIt != m_nameIndex.end())
     {
@@ -371,6 +375,9 @@ bool cxxlFASTCALL removeBackChild()
 // 清空所有子節點 - O(n)時間複雜度
 void cxxlFASTCALL clearChildren()
 {
+    for (const auto &child : m_children)
+        child->m_parent.reset();
+
     m_children.clear();
     m_nameIndex.clear();
     m_childIndex.clear();
