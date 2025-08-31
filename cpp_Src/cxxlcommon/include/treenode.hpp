@@ -1,5 +1,5 @@
 /***********************************************************
- * treenode.hpp 2.4.17
+ * treenode.hpp 2.4.19
  *
  * 一個階層式的樹狀容器，每個節點可以包含
  * 一個可有可無物件，和它之下不限數量(也
@@ -58,7 +58,7 @@ namespace CXXL
 
         // 通知所有 wait() 的等待線程
         inline static std::condition_variable cv;
-        inline static bool ready = false;
+        inline static bool ready = true;
 
     protected:
         // 加入任務
