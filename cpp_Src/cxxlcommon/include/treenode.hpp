@@ -900,6 +900,36 @@ namespace CXXL
                 callback(childNode);
         }
 
+        // 反向遍歷子節點(不含孫節點)
+        void cxxlFASTCALL forEachChildReverse(
+            const std::function<void(const CNODE_PTR &)>
+                &callback) const
+        {
+            std::shared_lock<std::shared_mutex>
+                lock(m_mutex);
+            std::list<CNODE_PTR> childrenCopy = m_children;
+            lock.unlock(); // 釋放鎖避免死鎖
+
+            for (auto it = childrenCopy.rbegin();
+                 it != childrenCopy.rend(); ++it)
+                callback(*it);
+        }
+
+        void cxxlFASTCALL forEachChildReverse(
+            const std::function<void(const NODE_PTR &)>
+                &callback)
+        {
+            std::shared_lock<std::shared_mutex>
+                lock(m_mutex);
+            std::list<NODE_PTR> childrenCopy = m_children;
+            lock.unlock(); // 釋放鎖避免死鎖
+
+            for (auto it = childrenCopy.rbegin();
+                 it != childrenCopy.rend(); ++it)
+                callback(*it);
+        }
+
+        
         // 偵錯用：檢查索引一致性
         bool cxxlFASTCALL validateIndexes() const
         {
