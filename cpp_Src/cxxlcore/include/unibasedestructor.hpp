@@ -73,7 +73,7 @@ namespace CXXL
         virtual ~IDestrWaiter() {}
     };
 
-    // 主程式須先取得核心銷毁控制器，並於結束前鎖毁。
+    // 主程式須先取得核心銷毀控制器，並於結束前銷毀。
     // 此控制器只能取得一次。
     extern CXXLCORE_DLLEXPORT std::shared_ptr<IDestrWaiter> cxxlFASTCALL getDestructor();
 
