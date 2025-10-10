@@ -1,5 +1,5 @@
 /***********************************************************
- * treenode.hpp 2.4.19
+ * treenode.hpp 2.4.20
  *
  * 一個階層式的樹狀容器，每個節點可以包含
  * 一個可有可無物件，和它之下不限數量(也
@@ -13,7 +13,7 @@
  *
  * TreeNodeBase<D> 在建立新的子節點前，會先
  * 呼叫 D 的 canCreateChild 函式，延伸類
- * 別可視須要覆蓋此函式
+ * 別可視須要加入自己的檢查，以及呼叫上層類別
  *
  * 為了避免解構時同時解構子孫節點造成堆
  * 疊爆掉的問題，將解構的任務交由線程池
@@ -229,11 +229,20 @@ namespace CXXL
         // 創建根節點
         static NODE_PTR cxxlFASTCALL createRoot(const std::u8string &name)
         {
+            if(D::canCreateChild(name) == false) return nullptr;
+
             NODE_PTR root(makeNode(name));
 
             // 不需要鎖定，因為此時還沒有其他線程能訪問這個新節點
             root->m_self = root;
             return root;
+        }
+
+        // TreeNodeBase 的要求
+        // 可以用指定的名字建立子節點嗎?
+        static bool cxxlFASTCALL canCreateChild(const std::u8string &name) const
+        {
+            return true;
         }
 
     public:
@@ -277,7 +286,7 @@ namespace CXXL
             std::unique_lock<std::shared_mutex> lock(m_mutex);
 
             // 向延伸類別詢問是否可以新增
-            if (((D *)this)->canCreateChild(name) == false)
+            if (D::canCreateChild(name) == false)
                 return nullptr;
 
             // 若有節點名稱則不可重複
@@ -310,7 +319,7 @@ namespace CXXL
             std::unique_lock<std::shared_mutex> lock(m_mutex);
 
             // 向延伸類別詢問是否可以新增
-            if (((D *)this)->canCreateChild(name) == false)
+            if (D::canCreateChild(name) == false)
                 return nullptr;
 
             // 若有節點名稱則不可重複
@@ -345,7 +354,7 @@ namespace CXXL
             std::unique_lock<std::shared_mutex> lock(m_mutex);
 
             // 向延伸類別詢問是否可以新增
-            if (((D *)this)->canCreateChild(name) == false)
+            if (D::canCreateChild(name) == false)
                 return nullptr;
 
             // 透過子節點索引快速找到位置
@@ -383,7 +392,7 @@ namespace CXXL
             std::unique_lock<std::shared_mutex> lock(m_mutex);
 
             // 向延伸類別詢問是否可以新增
-            if (((D *)this)->canCreateChild(name) == false)
+            if (D::canCreateChild(name) == false)
                 return nullptr;
 
             // 透過子節點索引快速找到位置
@@ -1056,17 +1065,19 @@ namespace CXXL
     template <typename T>
     class TreeNode : public TreeNodeBase<TreeNode<T>>
     {
-        // TreeNodeBase 的要求
-        // 可以用指定的名字建立子節點嗎?
-        bool cxxlFASTCALL canCreateChild(const std::u8string &name) const
-        {
-            return true;
-        }
 
         T m_data;                              // 節點資料
         mutable std::shared_mutex m_dataMutex; // 資料存取鎖
 
     protected:
+
+        // TreeNodeBase 的要求
+        // 可以用指定的名字建立子節點嗎?
+        static bool cxxlFASTCALL canCreateChild(const std::u8string &name) const
+        {
+            return TreeNodeBase<TreeNode<T>>::canCreateChild(name);
+        }
+
         // 建構函式
         // TreeNodeBase 的要求
         explicit TreeNode(const std::u8string &name)
