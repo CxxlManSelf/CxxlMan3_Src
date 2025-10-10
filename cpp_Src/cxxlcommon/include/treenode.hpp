@@ -1,5 +1,5 @@
 /***********************************************************
- * treenode.hpp 2.4.20
+ * treenode.hpp 2.4.22
  *
  * 一個階層式的樹狀容器，每個節點可以包含
  * 一個可有可無物件，和它之下不限數量(也
@@ -194,6 +194,10 @@ namespace CXXL
         // 建構一個在解構時由 m_threadLimiter 進行刪除
         static NODE_PTR cxxlFASTCALL makeNode(const std::u8string &name)
         {
+            // 向延伸類別詢問是否可以新增
+            if (D::canCreateChild(name) == false)
+                return nullptr;
+
             std::shared_ptr<D> node(new D(name),
                                     [](D *p)
                                     {
@@ -229,18 +233,18 @@ namespace CXXL
         // 創建根節點
         static NODE_PTR cxxlFASTCALL createRoot(const std::u8string &name)
         {
-            if(D::canCreateChild(name) == false) return nullptr;
 
             NODE_PTR root(makeNode(name));
 
             // 不需要鎖定，因為此時還沒有其他線程能訪問這個新節點
-            root->m_self = root;
+            if(root)
+                root->m_self = root;
             return root;
         }
 
         // TreeNodeBase 的要求
         // 可以用指定的名字建立子節點嗎?
-        static bool cxxlFASTCALL canCreateChild(const std::u8string &name) const
+        static bool cxxlFASTCALL canCreateChild(const std::u8string &name)
         {
             return true;
         }
@@ -285,15 +289,13 @@ namespace CXXL
         {
             std::unique_lock<std::shared_mutex> lock(m_mutex);
 
-            // 向延伸類別詢問是否可以新增
-            if (D::canCreateChild(name) == false)
-                return nullptr;
-
             // 若有節點名稱則不可重複
             if (!name.empty() && m_nameIndex.find(name) != m_nameIndex.end())
                 return nullptr;
 
             NODE_PTR newChild(makeNode(name));
+            if(newChild == nullptr) return nullptr;
+
             auto it = m_children.insert(m_children.begin(),
                                         newChild);
 
@@ -318,15 +320,13 @@ namespace CXXL
         {
             std::unique_lock<std::shared_mutex> lock(m_mutex);
 
-            // 向延伸類別詢問是否可以新增
-            if (D::canCreateChild(name) == false)
-                return nullptr;
-
             // 若有節點名稱則不可重複
             if (!name.empty() && m_nameIndex.find(name) != m_nameIndex.end())
                 return nullptr;
 
             NODE_PTR newChild(makeNode(name));
+            if(newChild == nullptr) return nullptr;
+
             auto it = m_children.insert(m_children.end(),
                                         newChild);
 
@@ -353,10 +353,6 @@ namespace CXXL
         {
             std::unique_lock<std::shared_mutex> lock(m_mutex);
 
-            // 向延伸類別詢問是否可以新增
-            if (D::canCreateChild(name) == false)
-                return nullptr;
-
             // 透過子節點索引快速找到位置
             auto indexIt = m_childIndex.find(
                 childNode.get());
@@ -368,6 +364,9 @@ namespace CXXL
                 return nullptr;
 
             NODE_PTR newChild(makeNode(name));
+            if(newChild == nullptr) return nullptr;
+
+
             auto newIt = m_children.insert(indexIt->second,
                                            newChild);
 
@@ -391,9 +390,6 @@ namespace CXXL
         {
             std::unique_lock<std::shared_mutex> lock(m_mutex);
 
-            // 向延伸類別詢問是否可以新增
-            if (D::canCreateChild(name) == false)
-                return nullptr;
 
             // 透過子節點索引快速找到位置
             auto indexIt = m_childIndex.find(
@@ -406,6 +402,8 @@ namespace CXXL
                 return nullptr;
 
             NODE_PTR newChild(makeNode(name));
+            if(newChild == nullptr) return nullptr;
+
             auto newIt = m_children.insert(
                 std::next(indexIt->second), newChild);
 
@@ -1073,7 +1071,7 @@ namespace CXXL
 
         // TreeNodeBase 的要求
         // 可以用指定的名字建立子節點嗎?
-        static bool cxxlFASTCALL canCreateChild(const std::u8string &name) const
+        static bool cxxlFASTCALL canCreateChild(const std::u8string &name)
         {
             return TreeNodeBase<TreeNode<T>>::canCreateChild(name);
         }
