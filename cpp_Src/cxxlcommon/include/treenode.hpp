@@ -1,5 +1,5 @@
 /***********************************************************
- * treenode.hpp 2.4.22
+ * treenode.hpp 2.4.23
  *
  * 一個階層式的樹狀容器，每個節點可以包含
  * 一個可有可無物件，和它之下不限數量(也
@@ -147,48 +147,6 @@ namespace CXXL
             // std::unique_lock<std::shared_mutex> lock(m_mutex);
             m_parent = parent;
             m_self = self;
-        }
-
-        void cxxlFASTCALL traverse(const std::function<void(const CNODE_PTR &,
-                                                            size_t)> &callback,
-                                   size_t depth) const
-        {
-            callback(getSelf(), depth);
-
-            std::shared_lock<std::shared_mutex> lock(m_mutex);
-            if (m_children.size() != 0)
-            {
-                // 創建子節點的副本以避免在遍歷過程中鎖定衝突
-                std::list<NODE_PTR> childrenCopy = m_children;
-                lock.unlock(); // 釋放鎖避免死鎖
-
-                for (auto &childNode : childrenCopy)
-                    ((const D *)childNode.get())->traverse(callback, depth + 1);
-
-                // lock.lock(); // 重新獲取鎖
-                callback(CNODE_PTR(), 0);
-            }
-        }
-
-        void cxxlFASTCALL traverse(const std::function<void(const NODE_PTR &, size_t)>
-                                       &callback,
-                                   size_t depth)
-        {
-            callback(getSelf(), depth);
-
-            std::unique_lock<std::shared_mutex> lock(m_mutex);
-            if (m_children.size() != 0)
-            {
-                // 創建子節點的副本以避免在遍歷過程中鎖定衝突
-                std::list<NODE_PTR> childrenCopy = m_children;
-                lock.unlock(); // 釋放鎖避免死鎖
-
-                for (auto &childNode : childrenCopy)
-                    childNode->traverse(callback, depth + 1);
-
-                // lock.lock(); // 重新獲取鎖
-                callback(NODE_PTR(), 0);
-            }
         }
 
         // 建構一個在解構時由 m_threadLimiter 進行刪除
@@ -830,56 +788,6 @@ namespace CXXL
         {
             return std::const_pointer_cast<D>(
                 ((const TreeNodeBase<D> *)this)->getPreviousChild(child));
-        }
-
-        // 遍歷整棵樹(深度優先)
-        // callback 第一個參數表示得到的節點
-        // 第二個參數 depth 表示節點深度
-        // root depth 為 1，0 表示回上一個節點
-        void cxxlFASTCALL traverse(const std::function<
-                                   void(const CNODE_PTR &node, size_t depth)>
-                                       &callback) const
-        {
-            callback(getSelf(), 1);
-
-            std::shared_lock<std::shared_mutex> lock(m_mutex);
-            if (m_children.size() != 0)
-            {
-                // 創建子節點的副本以避免在遍歷過程中鎖定衝突
-                std::list<NODE_PTR> childrenCopy = m_children;
-                lock.unlock(); // 釋放鎖避免死鎖
-
-                for (auto &childNode : childrenCopy)
-                    ((const D *)childNode.get())->traverse(callback, 2);
-
-                // lock.lock(); // 重新獲取鎖
-                callback(CNODE_PTR(), 0);
-            }
-        }
-
-        // 遍歷整棵樹(深度優先)
-        // callback 第一個參數表示得到的節點
-        // 第二個參數 depth 表示節點深度
-        // root depth 為 1，0 表示回上一個節點
-        void cxxlFASTCALL traverse(const std::function<
-                                   void(const NODE_PTR &node, size_t depth)>
-                                       &callback)
-        {
-            callback(getSelf(), 1);
-
-            std::unique_lock<std::shared_mutex> lock(m_mutex);
-            if (m_children.size() != 0)
-            {
-                // 創建子節點的副本以避免在遍歷過程中鎖定衝突
-                std::list<NODE_PTR> childrenCopy = m_children;
-                lock.unlock(); // 釋放鎖避免死鎖
-
-                for (auto &childNode : childrenCopy)
-                    childNode->traverse(callback, 2);
-
-                // lock.lock(); // 重新獲取鎖
-                callback(NODE_PTR(), 0);
-            }
         }
 
         // 遍歷子節點(不含孫節點)
