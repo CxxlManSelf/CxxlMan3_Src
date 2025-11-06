@@ -1,5 +1,5 @@
 /***********************************************************
- * treenode.hpp 2.4.23
+ * treenode.hpp 2.4.24
  *
  * 一個階層式的樹狀容器，每個節點可以包含
  * 一個可有可無物件，和它之下不限數量(也
@@ -16,7 +16,7 @@
  * 別可視須要加入自己的檢查，以及呼叫上層類別
  *
  * 為了避免解構時同時解構子孫節點造成堆
- * 疊爆掉的問題，將解構的任務交由線程池
+ * 疊爆掉的問題，將解構的任務交由 AsyncNodeDeletor 轉用線程池
  * 來執行
  *
  * Thread-Safe Version - 使用 shared_mutex 提供讀寫鎖機制
@@ -50,7 +50,7 @@ namespace CXXL
     // 建立，最多不會超過 CPU 提供的線程
     // 數量。任務滅少會逐一結束線程
     // 提供一個 wait() 用於等待所有線程結束
-    class TreeNodeThreadPool
+    class AsyncNodeDeletor
     {
         inline static size_t m_threadNum = 0;                    // 建立的線程數量
         inline static std::queue<std::function<void()>> m_tasks; // 線程任務列表
@@ -111,7 +111,7 @@ namespace CXXL
     // 基底樹狀容器
     // D: 為延伸類別
     template <typename D>
-    class TreeNodeBase : private TreeNodeThreadPool
+    class TreeNodeBase : private AsyncNodeDeletor
     {
         using NODE_PTR = std::shared_ptr<D>;
         using CNODE_PTR = std::shared_ptr<const D>;
@@ -159,7 +159,7 @@ namespace CXXL
             std::shared_ptr<D> node(new D(name),
                                     [](D *p)
                                     {
-                                        TreeNodeThreadPool::addTask(
+                                        AsyncNodeDeletor::addTask(
                                             [p]
                                             {
                                                 ::delete p;
