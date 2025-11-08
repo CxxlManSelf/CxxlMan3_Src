@@ -1,8 +1,10 @@
 /**************************************************
- * treenode_io.hpp 0.1.0
+ * treenode_io.hpp 1.1.7
  * 
  * 針對 TreeNodeBase 延伸類別 NODE<T> 設計的 
- * Stream 匯出匯入功能，比如 TreeNode<std::string>
+ * Stream 匯出匯入功能，採用 UTF-8 編碼
+ * 
+ * 比如 TreeNode<std::string>* 
  *
  * T 即為要被匯出匯入的資料，若為 std::string，可
  * 直接用內定的轉換方法直接使用，否則可以提供轉
@@ -71,7 +73,7 @@ class TreeNode_O;
 template <typename DATA, template <typename> class NODE>
 class TreeNode_O<NODE<DATA>>
 {
-    static inline std::string u8_to_string(const std::u8string &u8)
+    static inline std::string u8_to_string(const std::u8string &u8) noexcept
     {
         std::string s;
         s.reserve(u8.size());
@@ -81,7 +83,7 @@ class TreeNode_O<NODE<DATA>>
     }
 
  
-    static inline std::string escapeName(const std::string &s)
+    static inline std::string escapeName(const std::string &s) noexcept
     {
         std::string out;
         out.reserve(s.size());
@@ -100,7 +102,7 @@ class TreeNode_O<NODE<DATA>>
         return out;
     }
 
-    static inline std::string escapeContent(const std::string &s)
+    static inline std::string escapeContent(const std::string &s) noexcept
     {
         std::string out;
         out.reserve(s.size());
@@ -119,7 +121,7 @@ class TreeNode_O<NODE<DATA>>
         return out;
     }
 
-    static inline std::string makeIndent(int depth, size_t indentWidth)
+    static inline std::string makeIndent(int depth, size_t indentWidth) noexcept
     {
         return std::string(depth > 0 && indentWidth ? (indentWidth * (depth - 1)) : 0, ' ');
     }
@@ -216,7 +218,7 @@ private:
     size_t m_line = 1;
     size_t m_col = 1;
 
-    std::u8string string_to_u8(const std::string &s)
+    std::u8string string_to_u8(const std::string &s) noexcept
     {
         std::u8string u;
         u.reserve(s.size());
@@ -256,41 +258,14 @@ private:
         return out;
     }
 
-
-    std::string parseName(const std::string &all, size_t &i)
-    {
-        const size_t n = all.size();
-        // assume all[i] == '['
-        ++i; // skip '['
-        std::string name_esc;
-        while (i < n)
-        {
-            char ch = all[i++];
-            if (ch == '\\' && i < n)
-            {
-                name_esc.push_back(all[i++]);
-                continue;
-            }
-            if (ch == ']') break;
-            name_esc.push_back(ch);
-        }
-        return unescape(name_esc);
-    }
-
     std::shared_ptr<NODE<DATA>> 
-    setError(size_t line, size_t col, const std::string &msg)
+    setError(size_t line, size_t col, const std::string &msg) noexcept
     {
         if (m_outError)
             *m_outError = ParseError{line, col, msg};
         return nullptr;
     }
 
-    int peekChar(int &out)
-    {
-        int c = m_is.peek();
-        out = c;
-        return c;
-    };
     int getChar()
     {
         int ci = m_is.get();
@@ -318,14 +293,16 @@ private:
             char c = static_cast<char>(p);
             if (std::isspace(static_cast<unsigned char>(c))) 
             { 
-                getChar(); 
+                getChar();
                 continue; 
             }
 
             if (c == '/')
             {
-                // possible // comment
-                m_is.get(); // consume '/'
+                size_t old_line = m_line;
+                size_t old_col = m_col;
+
+                getChar(); // consume '/'
                 int p2 = m_is.peek();
                 if (p2 != std::char_traits<char>::eof() && static_cast<char>(p2) == '/')
                 {
@@ -342,7 +319,7 @@ private:
                     // we can use putback to restore
                     m_is.putback('/');
                     // adjust col back (we consumed '/'), so decrement col
-                    if (m_col > 1) --m_col; else m_col = 1;
+                    m_col = old_col; m_line = old_line;
                     return;
                 }
             }
@@ -361,33 +338,44 @@ private:
     {
         // expects '[' at current position
         int g = getChar();
-        if (g == std::char_traits<char>::eof()) 
+        if (g == std::char_traits<char>::eof())
             return {false, std::string()};
-            
+
         char ch = static_cast<char>(g);
-        if (ch != '[') 
+        if (ch != '[')
             return {false, std::string()};
 
         std::string name_esc;
+        bool escaped = false;
         while (true)
         {
             int gc = getChar();
             if (gc == std::char_traits<char>::eof()) { return {false, std::string()}; }
 
             char c2 = static_cast<char>(gc);
-            if (c2 == '\\')
+
+            if (escaped)
             {
-                int nx = getChar();
-                if (nx == std::char_traits<char>::eof()) 
-                    return {false, std::string()};
-
-                name_esc.push_back(static_cast<char>(nx));
-                continue;
+                // 前一個字符是 '\'，當前字符無論是什麼都照單全收
+                name_esc.push_back(c2);
+                escaped = false;
             }
-
-            if (c2 == ']') break;
-
-            name_esc.push_back(c2);
+            else if (c2 == '\\')
+            {
+                // 遇到 '\'，標記轉義狀態，並保留 '\' 字符
+                name_esc.push_back(c2);
+                escaped = true;
+            }
+            else if (c2 == ']')
+            {
+                // 未轉義的 ']'，結束解析
+                break;
+            }
+            else
+            {
+                // 普通字符
+                name_esc.push_back(c2);
+            }
         }
 
         return {true, unescape(name_esc)};
@@ -397,34 +385,45 @@ private:
     {
         // expects '"' at current position
         int g = getChar();
-        if (g == std::char_traits<char>::eof()) 
+        if (g == std::char_traits<char>::eof())
             return {false, std::string()};
 
         char ch = static_cast<char>(g);
-        if (ch != '"') 
+        if (ch != '"')
             return {false, std::string()};
 
         std::string content_esc;
+        bool escaped = false;
         while (true)
         {
             int gc = getChar();
-            if (gc == std::char_traits<char>::eof()) 
+            if (gc == std::char_traits<char>::eof())
                 return {false, std::string()};
 
             char c2 = static_cast<char>(gc);
-            if (c2 == '\\')
+
+            if (escaped)
             {
-                int nx = getChar();
-                if (nx == std::char_traits<char>::eof()) 
-                    return {false, std::string()};
-
-                content_esc.push_back(static_cast<char>(nx));
-                continue;
+                // 前一個字符是 '\'，當前字符無論是什麼都照單全收
+                content_esc.push_back(c2);
+                escaped = false;
             }
-            if (c2 == '"') 
+            else if (c2 == '\\')
+            {
+                // 遇到 '\'，標記轉義狀態，並保留 '\' 字符
+                content_esc.push_back(c2);
+                escaped = true;
+            }
+            else if (c2 == '"')
+            {
+                // 未轉義的 '"'，結束解析
                 break;
-
-            content_esc.push_back(c2);
+            }
+            else
+            {
+                // 普通字符
+                content_esc.push_back(c2);
+            }
         }
 
         return {true, unescape(content_esc)};
@@ -473,17 +472,37 @@ private:
                 skipWSAndComments();
 
                 std::string content;
-                int pk2 = m_is.peek();
-                if (pk2 != std::char_traits<char>::eof() && static_cast<char>(pk2) == '"')
+                // check for quoted content
+                // 跳過 [name] 和 "content" 之間無關字元
+                // 以及取得 "content"
+                // "content" 也可以不存在
+                while(true)
                 {
-                    size_t qLine = m_line, qCol = m_col;
-                    auto pc = parseQuotedStream();
-                    if (!pc.first) return setError(qLine, qCol, "unterminated quoted content");
-                    content = pc.second;
+                    p = m_is.peek();
+
+                    if (p == std::char_traits<char>::eof()) break;
+                    c = static_cast<char>(p);
+                    if (c == '"') 
+                    {
+                        size_t qLine = m_line, qCol = m_col;
+                        auto pc = parseQuotedStream();
+                        if (!pc.first) return setError(qLine, qCol, "unterminated quoted content");
+
+                        content = pc.second;
+
+                        break;
+                    }
+                    else if( c == '{' || 
+                        c == '}' || 
+                        c == '['
+                        )
+                    {
+                        break;
+                    }
+                    getChar();
                 }
 
                 DATA data = m_stringToData(content);
-
                 if (parentStack.empty())
                 {
                     root = NODE<DATA>::createRoot(string_to_u8(name));
@@ -548,7 +567,7 @@ public:
     // 定轉換函數 stringToData
     // is: 輸入流
     // stringToData: 轉換函數    
-    static std::shared_ptr<NODE<DATA>> deserialize(std::istream &is,
+    [[nodiscard]] static std::shared_ptr<NODE<DATA>> deserialize(std::istream &is,
         const std::function<DATA(const std::string &)> &stringToData =
             [](const std::string &s) { return DATA(s); })
     {
@@ -566,7 +585,7 @@ public:
     // failed to create child node: 子節點名稱不能用
     // unterminated '{' (missing closing '}'): 資料來源已無資料，但 TreeNode 未建構完成
     // no root node found: 不是 TreeNode 的 serialize 資料
-    static std::shared_ptr<NODE<DATA>> deserialize(std::istream &is,
+    [[nodiscard]] static std::shared_ptr<NODE<DATA>> deserialize(std::istream &is,
         const std::function<DATA(const std::string &)> &stringToData,
         std::optional<ParseError> *outError)
     {
