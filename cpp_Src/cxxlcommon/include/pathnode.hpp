@@ -1,19 +1,26 @@
 /************************************************
- * pathnode.hpp 0.1.0
+ * pathnode.hpp 1.1.2
  *
  * 基於 TreeNodeBase 的路徑操作節點類別
  * 提供類似檔案系統的路徑操作功能
  *
  * 根節點的名稱不會出現在完整路徑中，而
  * 是 "/" 代表根節點
- *
- * 另外建立空名節點可以這樣做
- * 保留尾端的空段 ("/a/b/" -> ["/","a","b",""])
- * 保留中間的連續空段 ("/a//c" -> ["/","a","","c"])
- *
- * 可以 {N} 搜尋的創建，但 {N} 若不存在，不會建立
+ * 空名節點的名稱為 {N}
  * 
- * 但不能用空名取得子節點是不可行的，須用特殊標記
+ * 建立節點(createNodeByPath())時可以指定從根節點(以 "/" 開頭)開
+ * 始搜尋，還是從目前節點開始搜尋
+ * 
+ * 建立節點最後的參數 createIntermediates 可以指定是否自動創建中間
+ * 不存在的節點(還是內定)，還是只能創建最後的節點(但中間節點不存在不會建立) * 
+ * 
+ * 另外建立空名節點可以這樣做
+ * 保留尾端的空段 ("/a/b/" -> ["/","a","b",""]) (不能這樣用 "/a/b/{N}")
+ * 保留中間的連續空段 ("/a//c" -> ["/","a","","c"]) (createIntermediates == true 時)
+ *
+ * 建立節點可以用 {N} 特殊標記指定中間節點，但 {N} 若不存在，不會建立
+ * 
+ * 不能用空名取得子節點，須用 {N} 特殊標記
  * 
  * 特殊標記說明：
  * - {0}, {1}, {2}... 用於標記無名子節點的位置
@@ -30,8 +37,9 @@
  * Author: CxxlMan
  * Date: 2025-
  ************************************************/
+#ifndef __CXXLCOMMON_PATHNODE_HPP_CxxlMan3
+#define __CXXLCOMMON_PATHNODE_HPP_CxxlMan3
 
-#pragma once
 
 #include "treenode.hpp"
 
@@ -173,7 +181,7 @@ protected:
     static bool canCreateChild(const std::u8string &name)
     {
         if (name == u8"." || name == u8".." ||
-            name.contains(u8"/"))
+            name.find(u8'/') != std::u8string::npos)
             return false;
 
         if (isPositionMarker(name))
@@ -251,7 +259,7 @@ public:
     // path: 要查找的路徑 (絕對路徑以 "/" 開頭，
     //       相對路徑則從當前節點開始)
     // 回傳值：找到的節點，找不到則回傳 nullptr
-    CNODE_PTR findNodeByPath(
+    [[nodiscard]] CNODE_PTR findNodeByPath(
         const std::u8string &path) const
     {
         if (path.empty())
@@ -292,8 +300,7 @@ public:
                         current = current->getChildAt(
                             position.value());
                         // 須是無名子節點
-                        if (current &&
-                            current->getName().empty() != true)
+                        if (current && !current->getName().empty())
                             return nullptr;
                     }
                     else
@@ -316,17 +323,19 @@ public:
     // path: 要查找的路徑 (絕對路徑以 "/" 開頭，
     //       相對路徑則從當前節點開始)
     // 回傳值：找到的節點，找不到則回傳 nullptr
-    NODE_PTR findNodeByPath(const std::u8string &path)
+    [[nodiscard]] NODE_PTR findNodeByPath(const std::u8string &path)
     {
         return std::const_pointer_cast<D>(
-            ((const PathNodeBase<D> *)this)
-                ->findNodeByPath(path));
+            (static_cast<const PathNodeBase<D>*>(this)->findNodeByPath(path))
+        );
     }
 
     // 根據路徑創建節點
     // path: 要創建的節點路徑
     // createIntermediates: 是否自動創建中間路徑的節點
     // 回傳值：創建的節點，失敗則回傳 nullptr
+    // ❌ [[nodiscard]] NODE_PTR createNodeByPath( 
+    // 可以純建立子節點而不使用
     NODE_PTR createNodeByPath(
         const std::u8string &path,
         bool createIntermediates = true)
@@ -387,8 +396,7 @@ public:
                         current = current->getChildAt(
                             position.value());
                         // 須是無名子節點
-                        if (current &&
-                            current->getName().empty() != true)
+                        if (current && !current->getName().empty())
                             return nullptr;
                     }
                     else
@@ -402,7 +410,6 @@ public:
                 }
             }
 
-            //
             if (!current)
                 break;
 
@@ -412,14 +419,14 @@ public:
 
         // 全部存在不用創建
         if (it == components.end())
-            return nullptr;
+            return last;
 
         // 如果不允許創建中間路徑的節點
         if (!createIntermediates && it + 1 != components.end())
             return nullptr;
 
         current = last;
-        NODE_PTR killNode; // 若建立失敗將由這節點刪除
+        NODE_PTR killNode = nullptr; // 若建立失敗將由這節點刪除
         const std::u8string *pComponent;
 
         // 開始創建不存在的節點
@@ -451,7 +458,11 @@ public:
         {
             // 刪除所有創建的子節點
             if (killNode)
-                killNode->getParent()->removeChild(killNode);
+            {
+                auto parent = killNode->getParent();
+                if (parent)
+                    parent->removeChild(killNode);
+            }
             return nullptr;
         }
 
@@ -600,3 +611,4 @@ public:
 };
 
 }
+#endif // #define __CXXLCOMMON_PATHNODE_HPP_CxxlMan3
