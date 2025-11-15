@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cmake:*)",
+      "Bash(cmake --build:*)",
+      "Bash(.MyTest.exe)",
+      "Bash(./MyTest.exe)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
