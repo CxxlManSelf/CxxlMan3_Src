@@ -3,6 +3,7 @@
 #include <list>
 #include <mutex>
 
+#include <semaphore.hpp>
 #include <threadmgr.hpp>
 #include <unibasedestructor.hpp>
 
