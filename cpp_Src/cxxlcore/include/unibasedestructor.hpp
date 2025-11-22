@@ -1,5 +1,5 @@
 /************************************************************************************************
- * uniresdestructor.hpp v1.0.5
+ * uniresdestructor.hpp v1.0.6
  *
  * 提供結束共用 UniBase 功能的介面
  * 
@@ -31,7 +31,7 @@ namespace CXXL
         virtual ~IDestroyable() = default;
 
         // 虛擬函數，詢問此物件是否應當被結束共用
-        virtual bool cxxlFASTCALL LD_shouldDestroy() = 0;        
+        [[nodiscard]] virtual bool cxxlFASTCALL LD_shouldDestroy() = 0;        
 
         // 當物件須要結束共用時將調用此方法
         virtual void cxxlFASTCALL LD_destroy() = 0;
@@ -61,21 +61,18 @@ namespace CXXL
         virtual void cxxlFASTCALL reset_fFlag(const IDestroyable *pDestroyable) = 0;
     };
 
-    // 定義在外部的 IUniBaseDestructor 的實例指標
-    extern CXXLCORE_DLLEXPORT IUniBaseDestructor *g_pUniBaseDestructor;
-
 
     // 等待結束共用處理器的 待結束共用清單 清空，以及結束子執行緒
     class IDestrWaiter
     {
     public:
         // Destructor
-        virtual ~IDestrWaiter() {}
+        virtual ~IDestrWaiter() noexcept {}
     };
 
     // 主程式須先取得核心銷毀控制器，並於結束前銷毀。
     // 此控制器只能取得一次。
-    extern CXXLCORE_DLLEXPORT std::shared_ptr<IDestrWaiter> cxxlFASTCALL getDestructor();
+    [[nodiscard]] extern CXXLCORE_DLLEXPORT std::shared_ptr<IDestrWaiter> cxxlFASTCALL getDestructor();
 
 }
 

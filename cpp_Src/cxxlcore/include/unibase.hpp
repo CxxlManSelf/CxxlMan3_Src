@@ -1,5 +1,5 @@
 /************************************************************************************************
- * unibase.hpp v1.1.24
+ * unibase.hpp v1.1.26
  *
  * UniBase<>    統一基底，由此延伸出來的類別可以被安全共享，可以由 UniOwner 的持有來決定物件的是否
  *              結束共用。可分為
@@ -7,8 +7,33 @@
  *              UniBase<ONE> 只要有一個 UniOwner 放棄持有就會被結束共用
  *              注意！UniBase<ALL> 和 UniBase<ONE> 不可以多重繼承，在 DEBUG 模式下會進行檢查
  * UniOwner     UniBase 的管理器，可安全的持有共用 UniBase<>，可以藉由放棄持有來決定 UniBase<> 物
- *              件的是否結束共用
+ *              件的是否結束共用，被結束共用過的 UniBase<> 會被註記，沒辦法再
+ *              被 UniOwner/UniObserver 持有
  * UniObserver  UniBase 的觀察者，可安全的持有共用 UniBase<>，但不參與 UniBase<> 的共用管理
+ *
+ * 一個 UniBase<> 結束共用有兩種情況
+ * 1. 滿足 UniOwner 放棄持有的條件，即所有 UniOwner 都放棄持有(UniBase<ALL>)，或 UniBase<ONE> 被
+ *    一個 UniOwner 放棄持有
+ * 2. 有一個 UniOwner/UniObserver 放棄持有之後會進行檢查，所有的祖代(父、祖父...) 找不
+ *    到 root UniBase<>，也會結束共用。
+ *    所謂 root UniBase<> 是指沒有被放入過 UniOwner/UniObserver 的 UniBase<>。
+ * 
+ * 
+ * UniOwner/UniObserver 的 detachUniBase 回調函數使用約定  
+ * 使用者必須在回調中：
+ * 1. 使用 host class 的 mutex 上鎖（不是 UniBase 的 mutex）
+ * 2. 用 chkUniBase(pChkUniBase) 檢查是否為對應的 UniBase
+ * 3. 如果匹配，調用 destroy()
+ *
+ * 範例：
+ *
+ * UniOwner<MyClass> m_owner(this,
+ *     [this](UniOwner<MyClass> *owner, void *pChk) {
+ *         std::lock_guard<std::mutex> lock(m_mutex);
+ *         if (owner->chkUniBase(pChk))
+ *             owner->destroy();
+ *     });
+ *   
  *
  * Author: CxxlMan
  * Date: 2025 -
@@ -46,6 +71,7 @@ namespace CXXL
     template <typename UNIBASE>
     class UniOwner;
 
+    // UniBase<> 的傳輸用指標，不應該當作成員變數使用
     template <typename T>
     class UniPtr;
 
@@ -61,7 +87,7 @@ namespace CXXL
             {
                 struct
                 {
-                    bool cFlag : 1;       // 已放入放棄共用待處理佇列為 true，否則為 false
+                    bool cFlag : 1;       // 已放入待放棄共用檢測清單為 true，否則為 false
                     bool fFlag : 1;       // 放棄共用處理器已搜尋過為 true，否則為 false
                     bool rFlag : 1;       // 本身是 rootUniBase，即未放入過 _Holder 為 false，否則為 true
                     bool ldFlag : 1;      // 放棄共用處理器已處理過判定須結束共用為 true
@@ -75,13 +101,13 @@ namespace CXXL
             // 巡查是不是已經沒有 root 的 Host 存在
             bool cxxlFASTCALL checkNoHost();
 
-            virtual bool cxxlFASTCALL LD_shouldDestroy() override final; // class IDestroyable
+            [[nodiscard]] virtual bool cxxlFASTCALL LD_shouldDestroy() override final; // class IDestroyable
 
             virtual void cxxlFASTCALL LD_destroy() override final; // class IDestroyable
 
-            virtual void cxxlFASTCALL LD_clearFFlag() override final; // class IDestroyable
+            virtual void cxxlFASTCALL LD_clearFFlag() noexcept override final; // class IDestroyable
 
-            virtual void cxxlFASTCALL LD_clearJustAddFlag() override final; // class IDestroyable
+            virtual void cxxlFASTCALL LD_clearJustAddFlag() noexcept override final; // class IDestroyable
 
             mutable std::mutex m_UniBaseMutex;
 
@@ -106,21 +132,21 @@ namespace CXXL
             bool chkUniAll = false, chkUniOne = false;
 #endif
 
-            bool cxxlFASTCALL attachObserver(const _Holder *pObserver);
+            [[nodiscard]] bool cxxlFASTCALL attachObserver(const _Holder *pObserver);
 
             void cxxlFASTCALL detachObserver(const _Holder *pObserver);
 
-            bool cxxlFASTCALL attachOwner(const _Holder *pOwner);
+            [[nodiscard]] bool cxxlFASTCALL attachOwner(const _Holder *pOwner);
 
             void cxxlFASTCALL detachOwner(const _Holder *pOwner);
             void cxxlFASTCALL detachMoveOwner(const _Holder *pOwner); // 不做銷毀標記
 
             // 叫用 detachOwner() 或 detachObserver() 之後，呼叫此功能檢查是否需要結束共用
-            // UniBase_ptr 其實就是自己，只是為了有 std::shared_ptr 包裹，會交給放棄共用處理器
+            // UniBase_ptr 其實就是自己，只是為了能有 std::shared_ptr 包裹，交給放棄共用處理器
             void cxxlFASTCALL checkDestroy(const std::shared_ptr<_UniBase> &uniBase_ptr);
 
-            // 只是放入待放棄佇列，避免 destroy 處理時卻不存在了
-            // UniBase_ptr 其實就是自己，只是為了有 std::shared_ptr 包裹，會交給放棄共用處理器
+            // 只是放入待放棄共用檢測清單，避免 destroy 處理時卻不存在了
+            // UniBase_ptr 其實就是自己，只是為了能有 std::shared_ptr 包裹，交給放棄共用處理器
             void cxxlFASTCALL justAdd(const std::shared_ptr<_UniBase> &uniBase_ptr);
 
         public:
@@ -128,10 +154,10 @@ namespace CXXL
             _UniBase();
 
             // Destructor
-            virtual ~_UniBase();
+            virtual ~_UniBase() noexcept;
 
             // 檢查是否已經標記為結束共用
-            bool cxxlFASTCALL isDestroy() const;
+            [[nodiscard]] bool cxxlFASTCALL isDestroy() const;
 
             template <typename UNIBASE>
             friend class UniObserver;
@@ -176,7 +202,7 @@ namespace CXXL
 
         public:
             // Destructor
-            virtual ~_UniBaseAll() {}
+            virtual ~_UniBaseAll() noexcept {}
         };
 
         // 只要一個 UniOwner 放棄持有就會被結束共用
@@ -207,7 +233,7 @@ namespace CXXL
 
         public:
             // Destructor
-            virtual ~_UniBaseOne() {}
+            virtual ~_UniBaseOne() noexcept {}
         };
 
         // UniOwner 和 UniObserver 的基礎類別
@@ -234,7 +260,7 @@ namespace CXXL
 
         public:
             // Destructor
-            virtual ~_Holder() {}
+            virtual ~_Holder() noexcept {}
 
             // 給 _UniBase::destroy() 使用，pChkUniBase 作為要檢查的 _UniBase
             virtual void cxxlFASTCALL detachUniBase(const _UniBase *pChkUniBase) const = 0;
@@ -265,9 +291,9 @@ namespace CXXL
     {
     public:
         // Constructor
-        UniBase() {}
+        UniBase() = default;
         // Destructor
-        virtual ~UniBase() {}
+        virtual ~UniBase() noexcept = default;
     };
 
     // 只要一個 UniOwner 放棄持有就會被結束共用
@@ -277,9 +303,9 @@ namespace CXXL
     {
     public:
         // Constructor
-        UniBase() {}
+        UniBase() = default;
         // Destructor
-        virtual ~UniBase() {}
+        virtual ~UniBase() noexcept = default;
     };
 
     /*****************************************************************************/
@@ -341,7 +367,7 @@ namespace CXXL
         }
 
         // Destructor
-        virtual ~UniObserver()
+        virtual ~UniObserver() noexcept
         {
             destroy();
         }
@@ -349,14 +375,14 @@ namespace CXXL
         // Setter
         // 若成功被加入則回傳 true
         // 若 uniBase_ptr 被標示為結束共用狀態則不會被加入，改設定為 nullptr，且回傳 false
-        bool cxxlFASTCALL setUniBase(const UniPtr<UNIBASE> &uniBase_ptr)
+        [[nodiscard]] bool cxxlFASTCALL setUniBase(const UniPtr<UNIBASE> &uniBase_ptr)
         {
             destroy();
             return attachUniBase(uniBase_ptr.getUniBase());
         }
 
         // Getter
-        UniPtr<UNIBASE> cxxlFASTCALL getUniBase() const
+        [[nodiscard]] UniPtr<UNIBASE> cxxlFASTCALL getUniBase() const
         {
             return UniPtr<UNIBASE>(m_uniBase_ptr);
         }
@@ -390,7 +416,7 @@ namespace CXXL
         }
 
         // 給使用端檢查 pChkUniBase 是不是和持有的 UniBase 相匹配
-        bool cxxlFASTCALL chkUniBase(void *pChkUniBase) const
+        [[nodiscard]] bool cxxlFASTCALL chkUniBase(void *pChkUniBase) const
         {
             if (m_uniBase_ptr == nullptr)
                 return false;
@@ -464,7 +490,7 @@ namespace CXXL
         }
 
         // Destructor
-        virtual ~UniOwner()
+        virtual ~UniOwner() noexcept
         {
             destroy();
         }
@@ -472,14 +498,14 @@ namespace CXXL
         // Setter
         // 若成功被加入則回傳 true
         // 若 uniBase_ptr 被標示為結束共用狀態則不會被加入，改設定為 nullptr，且回傳 false
-        bool cxxlFASTCALL setUniBase(const UniPtr<UNIBASE> &uniBase_ptr)
+        [[nodiscard]] bool cxxlFASTCALL setUniBase(const UniPtr<UNIBASE> &uniBase_ptr)
         {
             destroy();
             return attachUniBase(uniBase_ptr.getUniBase());
         }
 
         // Getter
-        UniPtr<UNIBASE> cxxlFASTCALL getUniBase() const
+        [[nodiscard]] UniPtr<UNIBASE> cxxlFASTCALL getUniBase() const
         {
             return UniPtr<UNIBASE>(m_uniBase_ptr);
         }
@@ -515,7 +541,7 @@ namespace CXXL
         }
 
         // 給使用端檢查 pChkUniBase 是不是和持有的 UniBase 相匹配
-        bool cxxlFASTCALL chkUniBase(void *pChkUniBase) const
+        [[nodiscard]] bool cxxlFASTCALL chkUniBase(void *pChkUniBase) const
         {
             if (m_uniBase_ptr == nullptr)
                 return false;

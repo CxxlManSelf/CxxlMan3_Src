@@ -68,17 +68,37 @@ namespace CXXL
         {
         }
 
+        // Move Constructor
+        UniPtr(UniPtr &&uniPtr) noexcept
+            : m_uniBase_ptr(std::move(uniPtr.m_uniBase_ptr))
+        {
+        }
+
         // Destructor
-        virtual ~UniPtr()
+        virtual ~UniPtr() noexcept
         {
             destroyUniBase();
         }
 
-        // Assignment
+        // Copy Assignment
         UniPtr &operator=(const UniPtr &uniPtr)
         {
-            destroyUniBase();
-            m_uniBase_ptr = uniPtr.m_uniBase_ptr;
+            if (this != &uniPtr)
+            {
+                destroyUniBase();
+                m_uniBase_ptr = uniPtr.m_uniBase_ptr;
+            }
+            return *this;
+        }
+
+        // Move Assignment
+        UniPtr &operator=(UniPtr &&uniPtr) noexcept
+        {
+            if (this != &uniPtr)
+            {
+                destroyUniBase();
+                m_uniBase_ptr = std::move(uniPtr.m_uniBase_ptr);
+            }
             return *this;
         }
 
@@ -90,25 +110,25 @@ namespace CXXL
         }
 
         // operator->
-        UNIBASE *operator->() const
+        [[nodiscard]] UNIBASE *operator->() const
         {
             return m_uniBase_ptr.get();
         }
 
         // operator*
-        UNIBASE &operator*() const
+        [[nodiscard]] UNIBASE &operator*() const
         {
             return *m_uniBase_ptr;
         }
 
         // operator bool
-        operator bool() const
+        [[nodiscard]] explicit operator bool() const noexcept
         {
             return m_uniBase_ptr != nullptr;
         }
 
         // get UniBase
-        UNIBASE *get() const
+        [[nodiscard]] UNIBASE *get() const
         {
             return m_uniBase_ptr.get();
         }
@@ -118,7 +138,7 @@ namespace CXXL
         // 再用此功能包裹成 UniPtr
         // 以使用相同的計數器
         template <typename T>
-        UniPtr<T> cast(T *p) const
+        [[nodiscard]] UniPtr<T> cast(T *p) const
         {
             if (p == nullptr) return UniPtr<T>(nullptr);
             if (m_uniBase_ptr == nullptr) return UniPtr<T>(nullptr);

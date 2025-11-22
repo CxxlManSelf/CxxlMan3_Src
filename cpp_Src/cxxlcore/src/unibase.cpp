@@ -4,6 +4,10 @@
 namespace CXXL
 {
 
+    // 定義在外部的 IUniBaseDestructor 的實例指標
+    // 在 unibase_destructor.cpp 中定義
+    extern IUniBaseDestructor *g_pUniBaseDestructor;
+
     bool cxxlFASTCALL UniResourcePrivate::_UniBase::checkNoHost()
     {
         // 已找過
@@ -55,7 +59,7 @@ namespace CXXL
                 break;
         }
 
-        cFlag = false; // 可再被放入待放棄共用的佇列
+        cFlag = false; // 可再被放入待放棄共用檢測清單
         fFlag = false;        
 
         return ldFlag = fNoRootUniBase;
@@ -63,29 +67,27 @@ namespace CXXL
 
     void cxxlFASTCALL UniResourcePrivate::_UniBase::LD_destroy()
     {
-        m_UniBaseMutex.lock();
+        std::unique_lock<std::mutex> lock(m_UniBaseMutex);
         m_isDestroy = true;
-        while (true)
+
+        while (!m_holderSet.empty())
         {
             auto it = m_holderSet.begin();
-            if (it == m_holderSet.end())
-                break;
 
-            m_UniBaseMutex.unlock();
+            lock.unlock();
             // 解鎖之後，不用擔心 _Holder 會不存在
             // 這是處理機制要做到的責任
             (*it)->detachUniBase(this);
-            m_UniBaseMutex.lock();
+            lock.lock();
         }
-        m_UniBaseMutex.unlock();
     }
 
-    void cxxlFASTCALL UniResourcePrivate::_UniBase::LD_clearFFlag()
+    void cxxlFASTCALL UniResourcePrivate::_UniBase::LD_clearFFlag() noexcept
     {
         fFlag = false;
     }
 
-    void cxxlFASTCALL UniResourcePrivate::_UniBase::LD_clearJustAddFlag()
+    void cxxlFASTCALL UniResourcePrivate::_UniBase::LD_clearJustAddFlag() noexcept
     {
         std::lock_guard<std::mutex> lock(m_UniBaseMutex);
         justAddFlag = false;
@@ -196,7 +198,7 @@ namespace CXXL
     }
 
     // Destructor
-    UniResourcePrivate::_UniBase::~_UniBase()
+    UniResourcePrivate::_UniBase::~_UniBase() noexcept
     {
     }
 
