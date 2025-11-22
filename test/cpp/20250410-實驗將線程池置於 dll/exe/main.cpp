@@ -15,6 +15,7 @@
 #include <random>
 #include <chrono>
 
+#include <semaphore.hpp>
 #include <dll.hpp>
 
 using namespace CxxlMan3;
@@ -66,6 +67,18 @@ void print(std::string s)
     std::cout.flush();
 }
 
+void print(std::future<std::string> s);
+
+// 在執行緒池中非同步顯示結果
+void asyncPrint(std::future<std::string> s)
+{
+	g_threadPool([s = std::move(s)]() mutable
+		{
+			print(std::move(s));
+		});
+}
+
+
 // 顯示計算的結果
 void print(std::future<std::string> s)
 {
@@ -78,10 +91,7 @@ void print(std::future<std::string> s)
     else
         // 如果0.1秒之內無法得到結果
         // 則將以新執行緒再執行
-		g_threadPool([s = std::move(s)]() mutable
-			{
-				print(std::move(s));
-			});
+        asyncPrint(std::move(s));
 }
 
 
@@ -111,10 +121,7 @@ int main()
         if (res)        
         {
             std::future<std::string> s = std::move(res.value());
-			g_threadPool([s = std::move(s)]() mutable
-				{
-					print(std::move(s));
-				});
+            asyncPrint(std::move(s));
         }
 
     }
