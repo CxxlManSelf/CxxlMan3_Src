@@ -1,5 +1,5 @@
 /***********************************************************************
- * uniptr.hpp v1.0.5
+ * uniptr.hpp v1.1.6
  *
  * UniPtr<>  封裝 std::shared_ptr，取代 std::shared_ptr，用法
  *           類似 std::shared_ptr，以附加一些額外的處理
@@ -138,11 +138,9 @@ namespace CXXL
         // 再用此功能包裹成 UniPtr
         // 以使用相同的計數器
         template <typename T>
-        [[nodiscard]] UniPtr<T> cast(T *p) const
+        [[nodiscard]] UniPtr<T> cast() const
         {
-            if (p == nullptr) return UniPtr<T>(nullptr);
-            if (m_uniBase_ptr == nullptr) return UniPtr<T>(nullptr);
-            return UniPtr<T>(std::shared_ptr<T>(m_uniBase_ptr,p));
+            return UniPtr<T>(std::shared_ptr<T>(m_uniBase_ptr, get()));
         }
 
         template <typename T>

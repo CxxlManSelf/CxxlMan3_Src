@@ -28,7 +28,6 @@ class UniBaseDestructor
     bool m_isOver = false; // 是否結束執行緒的標識
 
     // 待放棄共用檢測清單
-    // std::list<std::shared_ptr<IDestroyable> > m_list;
     std::list<std::function<void()>> m_list;
 
     // threadProc 的等待通知管制，待放棄共用清單沒有物件的時候
@@ -38,23 +37,38 @@ class UniBaseDestructor
     // 放棄共用處理器所用的執行緒
     void cxxlFASTCALL threadProc()
     {
-        // 用於取得待放棄共用物件
-        std::function<void()> checkFunction;
         while (true)
         {
             {
                 std::unique_lock<std::mutex> lock(m_mutex);
                 m_gate.wait(lock, [this]()
                             { return !m_list.empty() || m_isOver; });
+
                 if (m_list.empty() && m_isOver)
                     break;
-
-                checkFunction = std::move(m_list.front());
-                m_list.pop_front();
             }
 
-            if (checkFunction != nullptr)
-                checkFunction();
+            // 處理清單中的所有項目
+            while (true)
+            {
+                // 用於取得待放棄共用物件
+                std::function<void()> checkFunction;
+
+                {
+                    std::lock_guard<std::mutex> lock(m_mutex);
+
+                    if (!m_list.empty())
+                    {
+                        checkFunction = std::move(m_list.front());
+                        m_list.pop_front();
+                    }
+                    else
+                        break;
+                }
+
+                if (checkFunction)
+                    checkFunction();
+            }
         }
 
         g_waitDestructorEmptied.release();
@@ -77,7 +91,6 @@ public:
     // 放入待放棄共用檢測
     void cxxlFASTCALL add(std::function<void()> checkFunction)
     {
-        // g_waitDestructorEmptied.zero();
         std::lock_guard<std::mutex> lock(m_mutex);
         m_list.push_front(checkFunction);
         m_gate.notify_one();
