@@ -205,7 +205,7 @@ int main(int, char **)
     // - 需要透過 cast() 方法正確計算位址偏移
     // - (MyDerived2 *)multiDerived_ptr.get() 取得正確的 MyDerived2 子物件位址
     UniPtr<MyDerived2> myDerived2_ptr =
-        multiDerived_ptr.cast((MyDerived2 *)multiDerived_ptr.get());
+        multiDerived_ptr.cast<MyDerived2>();
 
     // 呼叫方法 - 應該會呼叫 MultiDerived::doSomething()
     // (因為是 virtual 函式,會根據實際物件型別決定呼叫哪個版本)
