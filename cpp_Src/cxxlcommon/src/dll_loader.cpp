@@ -20,13 +20,13 @@ namespace CXXL
 
     class DllLoader : public IDllLoader
     {
-        library_handle m_handle;
+        library_handle m_handle = nullptr;
 
-        // 指向自己
-        // 為了方便取得自己的 std::shared_ptr
+        // 指向自己的 weak_ptr
+        // 用於在 getProc() 中捕獲 shared_ptr，確保 DLL 生命週期正確
         std::weak_ptr<IDllLoader> m_DllLoader_ptr;
 
-        std::shared_ptr<IDllLoader> cxxlFASTCALL getDllLoader() const override
+        std::shared_ptr<IDllLoader> cxxlFASTCALL getDllLoader() const noexcept override
         {
             return m_DllLoader_ptr.lock();
         }
@@ -52,7 +52,7 @@ namespace CXXL
         }
 
         // Destructor
-        ~DllLoader()
+        ~DllLoader() noexcept
         {
 #if (PLATFORM_NAME == _WINDOWS_CxxlMan3)
             if (m_handle != nullptr)
@@ -63,7 +63,7 @@ namespace CXXL
 #endif
         }
 
-        bool cxxlFASTCALL isValid() const
+        bool cxxlFASTCALL isValid() const noexcept override
         {
             return m_handle != nullptr;
         }
@@ -80,13 +80,11 @@ namespace CXXL
         if (!pDllLoader->isValid())
         {
             delete pDllLoader;
-            return std::shared_ptr<IDllLoader>(nullptr);
+            return nullptr;
         }
-        else
-        {
-            std::shared_ptr<IDllLoader> DllLoader_ptr = std::shared_ptr<IDllLoader>(pDllLoader);
-            pDllLoader->setDllLoader(DllLoader_ptr);
-            return DllLoader_ptr;
-        }
+
+        std::shared_ptr<IDllLoader> DllLoader_ptr(pDllLoader);
+        pDllLoader->setDllLoader(DllLoader_ptr);
+        return DllLoader_ptr;
     }
 }
